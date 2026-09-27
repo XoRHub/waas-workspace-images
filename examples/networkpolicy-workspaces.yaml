@@ -1,0 +1,36 @@
+# Default-deny policy for workspace pods: VNC and the audio stream run
+# in clear inside the pod network by design (waas-core-images
+# HARDENING.md, threat model), so nothing but guacd may reach the
+# desktop ports, and workspaces cannot talk to each other or to the
+# platform's internal services.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: waas-workspace-isolation
+  namespace: waas
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/managed-by: waas-operator
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Only guacd may open VNC (5901) or pull the PulseAudio stream
+    # (4713, anonymous auth: this policy is its boundary).
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: guacd
+      ports:
+        - port: 5901
+        - port: 4713
+  egress:
+    - to: []
+      ports:
+        - { port: 53, protocol: UDP }
+        - { port: 53, protocol: TCP }
+    # The internet (browsing workspaces), never the cluster's own
+    # networks: adjust the except list to your pod/service CIDRs.
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16]

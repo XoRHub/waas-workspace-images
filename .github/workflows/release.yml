@@ -1,0 +1,166 @@
+# release — promote the g<sha> images of a main commit to X.Y.n (zero
+# build), publish catalogs/X.Y/catalog.yaml for it on main, then create
+# the git tag + GitHub Release. X.Y is images.yaml's `release:` (the waas
+# minor these images target); n is the next patch after the existing
+# vX.Y.* tags, 0 for the first release of a minor. `latest` moves only
+# when releasing the highest minor. Promotion happens here rather than
+# on a tag trigger: a tag pushed with GITHUB_TOKEN never fires another
+# workflow.
+#
+# Triggers: manual; automatic after a green main build whose commit came
+# from a PR labelled `auto-release` (Renovate patch/digest updates —
+# a core bump releases the rebuilt dependents).
+name: release
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: [build]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+  actions: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  version:
+    runs-on: ubuntu-24.04
+    if: >-
+      github.ref_name == github.event.repository.default_branch
+      && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    outputs:
+      proceed: ${{ steps.gate.outputs.proceed }}
+      version: ${{ steps.next.outputs.version }}
+      latest: ${{ steps.next.outputs.latest }}
+      sha: ${{ steps.target.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      # workflow_run: the commit build just built. Manual: the last green
+      # push build of main — HEAD may be a catalog commit (Contents API
+      # with GITHUB_TOKEN: never built, so it carries no g<sha> images).
+      - id: target
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          if [ "${GITHUB_EVENT_NAME}" = workflow_run ]; then
+            sha="${HEAD_SHA}"
+          else
+            sha=$(gh run list --workflow build.yml --branch main --event push \
+                    --status success --limit 1 --json headSha --jq '.[0].headSha // ""')
+          fi
+          [ -n "${sha}" ] || { echo "no green push build of main to release"; exit 1; }
+          echo "releasing ${sha}"
+          echo "sha=${sha}" >> "$GITHUB_OUTPUT"
+      - id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          proceed=true
+          if [ "${GITHUB_EVENT_NAME}" = workflow_run ]; then
+            labels=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${SHA}/pulls" --jq '.[].labels[].name')
+            case " ${labels} " in *" auto-release "*) ;; *) proceed=false ;; esac
+          fi
+          echo "proceed=${proceed}" >> "$GITHUB_OUTPUT"
+      - id: next
+        if: steps.gate.outputs.proceed == 'true'
+        env:
+          SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          minor=$(git show "${SHA}:images.yaml" | sed -nE 's/^release: *"?([0-9]+\.[0-9]+)"?.*$/\1/p')
+          [ -n "${minor}" ] || { echo "images.yaml: release: must be MAJOR.MINOR"; exit 1; }
+          last=$(git tag --list "v${minor}.*" --sort=-v:refname | head -n1)
+          if [ -z "${last}" ]; then
+            next="${minor}.0"
+          else
+            next="${minor}.$((${last##*.} + 1))"
+          fi
+          highest=$(git tag --list 'v[0-9]*' --sort=-v:refname | head -n1)
+          latest=false
+          if [ "$(printf '%s\n%s\n' "${highest#v}" "${next}" | sort -V | tail -n1)" = "${next}" ]; then
+            latest=true
+          fi
+          echo "${last:-none} -> v${next} (latest: ${latest})"
+          echo "version=${next}" >> "$GITHUB_OUTPUT"
+          echo "latest=${latest}" >> "$GITHUB_OUTPUT"
+
+  setup:
+    needs: version
+    if: needs.version.outputs.proceed == 'true'
+    runs-on: ubuntu-24.04
+    outputs:
+      variants: ${{ steps.pipeline.outputs.variants }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+      - id: pipeline
+        uses: XoRHub/waas-core-images/.github/actions/pipeline@actions/v1
+        with:
+          all: "true"
+          max-depth: 1
+
+  promote:
+    needs: [version, setup]
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.setup.outputs.variants) }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+      - uses: XoRHub/waas-core-images/.github/actions/promote@actions/v1
+        with:
+          image: ${{ toJSON(matrix) }}
+          version: ${{ needs.version.outputs.version }}
+          sha: ${{ needs.version.outputs.sha }}
+          latest: ${{ needs.version.outputs.latest }}
+
+  # main hosts the catalogs of every supported minor; the commit goes
+  # through the Contents API (signed), see ci/commit_catalog.sh.
+  catalog:
+    needs: [version, promote]
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.version.outputs.version }}
+      WAAS_CORE_IMAGES_DIR: .waas-core-images
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.version.outputs.sha }}
+      - uses: actions/checkout@v7
+        with:
+          repository: XoRHub/waas-core-images
+          ref: actions/v1
+          path: .waas-core-images
+      - uses: astral-sh/setup-uv@v9.0.0
+      - run: |
+          catalog="catalogs/${VERSION%.*}/catalog.yaml"
+          uv run ci/generate_catalog.py --version "${VERSION}"
+          uv run ci/validate_catalog.py "${catalog}"
+          sh ci/commit_catalog.sh "${catalog}" "chore(catalog): publish ${catalog} for v${VERSION}"
+
+  tag:
+    needs: [version, catalog]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+          TARGET: ${{ needs.version.outputs.sha }}
+          LATEST: ${{ needs.version.outputs.latest }}
+        run: gh release create "v${VERSION}" --target "${TARGET}" --title "v${VERSION}" --generate-notes --latest="${LATEST}"

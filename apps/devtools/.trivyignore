@@ -1,0 +1,17 @@
+# devtools / devtools-dev.
+#
+# One false positive matched four times: trivy's node-pkg analyzer reads
+# VS Code's bundled extension manifest
+# usr/share/code/resources/app/extensions/npm/package.json (name "npm",
+# version "1.0.1" — the extension's own) and takes it for the npm CLI at
+# 1.0.1. No npm CLI is installed in this image. Re-test on a trivy bump.
+CVE-2018-7408
+CVE-2019-16775
+CVE-2019-16776
+CVE-2019-16777
+
+# CVE-2022-25235 / CVE-2022-25236: the Ubuntu snap-stub "firefox" epoch
+# false positive documented in apps/firefox/.trivyignore (Firefox comes
+# from the desktop baseline).
+CVE-2022-25235
+CVE-2022-25236

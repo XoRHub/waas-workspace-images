@@ -1,0 +1,30 @@
+# WorkspaceTemplate consuming a workspace image — the full integration
+# contract in one example.
+#
+# Credentials: none needed. A template exposing vnc without an explicit
+# password source gets a random per-workspace password, injected as
+# WAAS_DESKTOP_PASSWORD via secretKeyRef and resolved server-side at
+# connect time. For a persistent secret (ESO/Vault), set
+# `protocols[].credentialsSecretRef` on the vnc protocol and source
+# WAAS_DESKTOP_PASSWORD from the same Secret.
+apiVersion: waas.xorhub.io/v1alpha1
+kind: WorkspaceTemplate
+metadata:
+  name: ubuntu-desktop-noble
+spec:
+  displayName: "Ubuntu 24.04 (noble) — Desktop"
+  description: "Full XFCE desktop over VNC."
+  os: linux
+  # An immutable X.Y.n tag (or its digest), never a mobile one — take
+  # the ref from catalogs/<X.Y>/catalog.yaml, or let the platform's
+  # catalog sync fill it in.
+  image: ghcr.io/xorhub/waas-workspace-images/ubuntu-desktop-noble:0.4.0
+  # 5901 = VNC — the only protocol a workspace image serves.
+  port: 5901
+  homeSize: 10Gi
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { cpu: "2", memory: 4Gi }
+  env:
+    - name: WAAS_VNC_RESOLUTION
+      value: "1920x1080"

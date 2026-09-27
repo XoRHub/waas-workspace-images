@@ -1,0 +1,8 @@
+# CVE-2022-25235 / CVE-2022-25236 (expat, "firefox" package): trivy's
+# Ubuntu DB tracks the distro's own firefox, a snap-transitional stub
+# versioned "1:1snap1-0ubuntu1" whose epoch compares newer than any
+# Mozilla .deb ("<version>~buildN"), so the real, current Firefox is
+# always reported vulnerable. aquasecurity/trivy discussion #6792.
+# Same pair in desktop/xfce, apps/devtools, apps/hermes-agent.
+CVE-2022-25235
+CVE-2022-25236

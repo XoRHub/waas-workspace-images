@@ -1,0 +1,26 @@
+name: devtools
+layer: apps
+# Built FROM the published desktop (depth 2), not a private twin of it.
+from: ubuntu-desktop-noble
+description: >
+  XFCE work desktop with VS Code (Microsoft APT repo, fingerprint
+  pinned) on top of the desktop baseline (Firefox, git, openssh-client,
+  mise), plus the system build toolchain (build-essential, python3, jq,
+  tmux). No autostart: VS Code sits in the XFCE menu.
+icon: visual-studio-code
+
+variants:
+  - name: devtools
+    displayName: DevTools (hardened)
+    smoke:
+      vnc: true
+
+  # Reduced profile (HARDENING.md): sudo NOPASSWD for UID 1000, the only
+  # setuid binary; profile: dev relaxes the smoke and bakes WAAS_PROFILE.
+  - name: devtools-dev
+    displayName: DevTools (dev)
+    profile: dev
+    buildArgs:
+      INSTALL_SUDO: "1"
+    smoke:
+      vnc: true

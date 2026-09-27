@@ -1,0 +1,22 @@
+# hermes-agent / hermes-agent-dev.
+#
+# CVE-2022-25235 / CVE-2022-25236: the Ubuntu snap-stub "firefox" epoch
+# false positive documented in apps/firefox/.trivyignore.
+CVE-2022-25235
+CVE-2022-25236
+
+# Accepted upstream-owned findings — real CVEs in Python dependencies
+# resolved by the Hermes installer (mcp 1.26.0, python-multipart 0.0.27,
+# starlette 1.0.1). Not patched here: the uv environment is upstream's
+# tested set, and this image tracks upstream as closely as possible; the
+# fix arrives with a Hermes release. Exposure: MCP/ASGI server-side
+# components, and the only server run is the dashboard bound to
+# 127.0.0.1:9119 behind the password-gated VNC display — "no known
+# remote path", not "proven unreachable".
+# Re-evaluate on every HERMES_VERSION bump.
+CVE-2026-52869
+CVE-2026-52870
+CVE-2026-59950
+CVE-2026-53539
+CVE-2026-48818
+CVE-2026-54283

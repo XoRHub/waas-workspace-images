@@ -1,0 +1,14 @@
+name: firefox
+layer: apps
+from: core-ubuntu-noble
+buildContexts:
+  firefox: shared/firefox
+description: >
+  Managed, policy-hardened Firefox in a single-app kiosk session — the
+  browser fills the screen, no desktop behind it.
+icon: firefox
+
+variants:
+  - name: firefox
+    smoke:
+      vnc: true

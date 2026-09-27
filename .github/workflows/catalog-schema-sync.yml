@@ -1,0 +1,47 @@
+# catalog-schema-sync — detect drift between the vendored catalog schema
+# (ci/schema/v1.schema.json) and XoRHub/waas's (main tracks waas main,
+# release/X.Y pins vX.Y.0 — ci/sync_schema.sh). Opens a PR, never merges
+# it: a schema change can be breaking. The PR's own lint job re-runs the
+# catalog tests against the candidate schema.
+name: catalog-schema-sync
+
+on:
+  schedule:
+    - cron: "0 7 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync-schema:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: sync
+        run: sh ci/sync_schema.sh
+      - name: Open re-sync PR
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          WAAS_SHA: ${{ steps.sync.outputs.waas_sha }}
+        run: |
+          SHORT_SHA=$(echo "${WAAS_SHA}" | cut -c1-12)
+          BRANCH="chore/schema-sync-${GITHUB_REF_NAME##*/}-${SHORT_SHA}"
+          if git ls-remote --exit-code --heads origin "${BRANCH}" >/dev/null 2>&1; then
+            echo "branch ${BRANCH} already exists, re-sync already pending"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${BRANCH}"
+          git add ci/schema/v1.schema.json ci/schema/README.md
+          git commit -m "chore(catalog): re-sync ci/schema/v1.schema.json with waas @ ${SHORT_SHA}"
+          git push origin "${BRANCH}"
+          gh pr create \
+            --title "chore(catalog): re-sync ci/schema/v1.schema.json (waas @ ${SHORT_SHA})" \
+            --body "Vendored catalog schema drifted from \`waas\`'s [\`shared/catalog/schema/v1.schema.json\` @ \`${WAAS_SHA}\`](https://github.com/XoRHub/waas/blob/${WAAS_SHA}/shared/catalog/schema/v1.schema.json). Opened by \`catalog-schema-sync.yml\`, **not merged automatically**: review the diff for breaking changes (new \`required\` property, tightened \`enum\`, removed property) before merging." \
+            --base "${GITHUB_REF_NAME}" \
+            --head "${BRANCH}"

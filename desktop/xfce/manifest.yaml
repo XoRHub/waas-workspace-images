@@ -1,0 +1,29 @@
+name: ubuntu-desktop
+layer: desktop
+from: core-ubuntu-noble
+buildContexts:
+  firefox: shared/firefox
+  mise: shared/mise
+description: >
+  XFCE desktop over VNC on the apt core. Ships a usable baseline:
+  Firefox, git, openssh-client, curl, vim, less, plus mise — which
+  installs toolchains into ~/.local/share/mise on the home volume, so
+  they survive pod restarts.
+# No xfce slug in dashboard-icons; the OS icon is the best fit.
+icon: ubuntu-linux
+
+variants:
+  # Also the parent of apps/devtools.
+  - name: ubuntu-desktop-noble
+    smoke:
+      vnc: true
+      audio: true
+
+  # Same Dockerfile, debian core.
+  - name: debian-desktop-13
+    os: debian-13
+    from: core-debian-13
+    icon: debian-linux
+    smoke:
+      vnc: true
+      audio: true

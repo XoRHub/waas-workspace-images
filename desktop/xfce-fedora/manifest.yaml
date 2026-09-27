@@ -1,0 +1,20 @@
+# dnf sibling of desktop/xfce: own Dockerfile, same shared contexts.
+name: fedora-desktop
+layer: desktop
+os: fedora-43
+from: core-fedora-43
+buildContexts:
+  firefox: shared/firefox
+  mise: shared/mise
+description: >
+  XFCE desktop on Fedora over VNC. Ships a usable baseline: Firefox,
+  git, openssh-clients, curl, vim, less, plus mise — which installs
+  toolchains into ~/.local/share/mise on the home volume, so they
+  survive pod restarts.
+icon: fedora
+
+variants:
+  - name: fedora-desktop-43
+    smoke:
+      vnc: true
+      audio: true

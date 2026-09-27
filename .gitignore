@@ -1,0 +1,6 @@
+.claude/*
+!.claude/skills/
+.waas-core-images/
+Dockerfile.generated
+__pycache__/
+github-matrices.json

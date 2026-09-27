@@ -1,0 +1,40 @@
+# Two variants (devtools precedent): hardened, and -dev with the reduced
+# profile so the agent can `sudo apt install` in-session — those installs
+# die with the pod, only /home/waas_user (and so ~/.hermes) survives.
+name: hermes-agent
+layer: apps
+from: core-ubuntu-noble
+buildContexts:
+  firefox: shared/firefox
+  mise: shared/mise
+description: >
+  Hermes Agent (Nous Research) with its web dashboard in a Firefox
+  kiosk (chat TUI embedded) — self-improving AI agent; keys, sessions,
+  memories and skills persist in ~/.hermes on the home volume, and mise
+  installs extra toolchains there too, so they survive pod restarts.
+# dashboard-icons canonical slug ("hermes-agent" is only an alias, 404 on the CDN).
+icon: hermes
+
+# Catalog env hint no protocol table can surface (merged by
+# ci/generate_catalog.py on top of the smoke-derived ones).
+env:
+  - name: WAAS_HERMES_DASHBOARD
+    description: >-
+      Serve the Hermes web dashboard in a Firefox kiosk (127.0.0.1:9119).
+      Boolean '1'/'0'; set '0' to disable the server and fall back to the
+      embedded chat TUI.
+    default: "1"
+
+variants:
+  - name: hermes-agent
+    displayName: Hermes-Agent (hardened)
+    smoke:
+      vnc: true
+
+  - name: hermes-agent-dev
+    displayName: Hermes-Agent (dev)
+    profile: dev
+    buildArgs:
+      INSTALL_SUDO: "1"
+    smoke:
+      vnc: true

@@ -1,0 +1,19 @@
+# No Dockerfile here: the toolkit's recipe compiler emits
+# Dockerfile.generated from the block below.
+name: libreoffice
+layer: apps
+from: core-ubuntu-noble
+description: >
+  LibreOffice (Ubuntu main packages, no third-party repo) in a
+  single-app kiosk session — no desktop behind it.
+icon: libreoffice
+displayName: LibreOffice
+
+recipe:
+  apt: [libreoffice, libreoffice-gtk3]
+  app: libreoffice
+
+variants:
+  - name: libreoffice
+    smoke:
+      vnc: true

@@ -1,0 +1,84 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "docker:pinDigests"
+  ],
+  "packageRules": [
+    {
+      "description": "Patch and digest updates automerge once the required checks pass; the auto-release label makes release.yml cut a patch release after the merge.",
+      "matchUpdateTypes": ["patch", "digest"],
+      "automerge": true,
+      "automergeType": "pr",
+      "platformAutomerge": true,
+      "labels": ["auto-release"]
+    },
+    {
+      "description": "Core bumps (images.yaml cores:, tag@digest) in one PR. A minor/major core is a CONTRACT.md change: reviewed by hand.",
+      "matchPackageNames": ["ghcr.io/xorhub/waas-core-images/**"],
+      "groupName": "cores"
+    },
+    {
+      "matchPackageNames": ["ghcr.io/xorhub/waas-core-images/**"],
+      "matchUpdateTypes": ["major", "minor"],
+      "automerge": false
+    },
+    {
+      "description": "The CI toolkit consumed at actions/vN: a new N is a breaking toolkit change, reviewed by hand.",
+      "matchPackageNames": ["XoRHub/waas-core-images"],
+      "versioning": "regex:^actions/v(?<major>\\d+)$",
+      "groupName": "waas-core-images toolkit",
+      "automerge": false
+    },
+    {
+      "description": "One PR for every actions/* bump, so one CI run instead of one per dependency.",
+      "matchManagers": ["github-actions"],
+      "matchPackageNames": ["!XoRHub/waas-core-images"],
+      "groupName": "github-actions"
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Pinned cores in images.yaml: tag and digest.",
+      "managerFilePatterns": ["/^images\\.yaml$/"],
+      "matchStrings": [
+        "^\\s+core-[a-z0-9-]+: (?<depName>ghcr\\.io/xorhub/waas-core-images/[a-z0-9-]+):(?<currentValue>[0-9.]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "The toolkit checkout (actions/checkout ref:) next to the uses: refs the github-actions manager tracks.",
+      "managerFilePatterns": ["/^\\.github/workflows/.+\\.yml$/"],
+      "matchStrings": [
+        "repository: (?<depName>XoRHub/waas-core-images)\\n\\s+ref: (?<currentValue>actions/v\\d+)"
+      ],
+      "datasourceTemplate": "github-tags",
+      "versioningTemplate": "regex:^actions/v(?<major>\\d+)$"
+    },
+    {
+      "customType": "regex",
+      "description": "Container tool images pinned in the workflows and the Makefile.",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.+\\.yml$/",
+        "/^Makefile$/"
+      ],
+      "matchStrings": [
+        "(?<depName>[a-z0-9.\\/-]+\\/(?:hadolint|actionlint)):(?<currentValue>v?[a-zA-Z0-9.-]+)"
+      ],
+      "datasourceTemplate": "docker"
+    },
+    {
+      "customType": "regex",
+      "description": "Annotated version pins in the Dockerfiles and shared scripts (NODE_VERSION, NPM_VERSION, HERMES_VERSION, MISE_VERSION). currentValue must start with a digit or 'v' on purpose: it skips FIREFOX_VERSION=*, where '*' means newest in the Mozilla apt repo at build time.",
+      "managerFilePatterns": [
+        "/^(apps|desktop)/.+/Dockerfile$/",
+        "/^shared/.+\\.sh$/"
+      ],
+      "matchStrings": [
+        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?\\n(?:ARG )?\\w+=\"?(?<currentValue>v?\\d[^\"\\s]*)\"?"
+      ]
+    }
+  ]
+}

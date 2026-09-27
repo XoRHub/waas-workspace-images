@@ -1,0 +1,34 @@
+# Global build configuration, merged with every <layer>/*/manifest.yaml
+# by the core toolkit's pipeline action (generate_pipeline.py).
+
+# Directories scanned for manifests, in dependency order.
+layers: [desktop, apps]
+
+# MAJOR.MINOR of the waas release these images target — the only
+# version source in this repo. Releases are X.Y.<n>, n computed from the
+# existing vX.Y.* git tags by release.yml. Bumping it is a PR; every
+# image is rebuilt (it is a shared input).
+release: "0.4"
+
+# External parents, referenced by manifests' `from:`. Pinned tag@digest,
+# bumped by Renovate (group "cores"). The digests below are placeholders
+# until the cores are published: local builds must use CORE_REF.
+cores:
+  core-ubuntu-noble: ghcr.io/xorhub/waas-core-images/core-ubuntu-noble:1.0.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  core-debian-13: ghcr.io/xorhub/waas-core-images/core-debian-13:1.0.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  core-fedora-43: ghcr.io/xorhub/waas-core-images/core-fedora-43:1.0.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+
+# OS keys a manifest may name (`os:`); the OS itself comes from the core.
+os:
+  ubuntu-noble: {}
+  debian-13: {}
+  fedora-43: {}
+
+defaults:
+  os: ubuntu-noble
+  archs: [linux/amd64, linux/arm64]
+
+# Trivy gate (scan action): fail on these severities.
+scan:
+  severity: HIGH,CRITICAL
+  ignoreUnfixed: true
