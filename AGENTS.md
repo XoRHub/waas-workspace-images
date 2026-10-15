@@ -27,6 +27,9 @@ blocks, by the toolkit's compiler). Committed by CI only:
 through the Contents API. The
 per-image docs go to the CI job summary. There is no `version:` field
 anywhere: `images.yaml` `release:` is the minor, the git tag the patch.
+`release:` is maintained by `release-sync.yml`, which opens a bump PR
+when waas' `appVersion` minor moves ahead of it — change it by hand only
+to lead a waas release, never to follow one.
 
 ## Non-negotiable constraints
 
@@ -89,8 +92,8 @@ make catalog VERSION=<X.Y.n>                           # generate + schema-valid
 make kasm-catalog                                      # kasm catalog, no Docker probe
 ```
 
-The pinned cores are placeholders until published: build the core in
-the sibling checkout first and pass `CORE_REF`. Run `make test` before
+`CORE_REF` builds a variant on a locally modified core instead of the
+published one pinned in `images.yaml` `cores:`. Run `make test` before
 declaring a change to `ci/*.py` done, `make lint` for any
 Dockerfile/`.sh`/workflow change, and `make build` + `make smoke` for
 every variant a change touches (a `shared/` change touches every image

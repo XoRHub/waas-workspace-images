@@ -1,0 +1,79 @@
+# release-sync — follow waas' minor. The chart derives both of its
+# bootstrap catalog URLs from its own appVersion minor, so
+# catalogs/<X.Y>/ has to exist for the minor waas ships; that only
+# happens once images.yaml `release:` moves to X.Y and a vX.Y.n is cut
+# here (ci/sync_release.sh explains why appVersion, not a release tag,
+# is the number tracked).
+#
+# Pull rather than a dispatch from waas: reading a public repo needs no
+# credential, so this costs no cross-repo token, and it is the same
+# shape as catalog-schema-sync.yml. The cost is latency — bounded by the
+# cron below, and a catalog that does not exist yet only leaves the
+# picker without metadata (the registry approval is independent of the
+# catalog sync), so being a day late is cosmetic.
+#
+# Opens a PR, never merges it: `release:` is a shared input, so the bump
+# rebuilds all ten images. The PR carries `auto-release`, which is what
+# makes release.yml cut vX.Y.0 off the merge — so one merge is the whole
+# remaining manual step, and the kasm catalog follows from the same
+# images.yaml push (catalog-kasmweb.yml).
+#
+# Caveat: GitHub disables cron-triggered workflows after 60 days without
+# repo activity — re-enable from the Actions tab, or use
+# workflow_dispatch, which is also the "waas just shipped, don't wait
+# for the cron" path.
+
+name: release-sync
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync-release:
+    # A release/X.Y branch is pinned to its minor by definition.
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: sync
+        run: sh ci/sync_release.sh
+      - name: Open the bump PR
+        if: steps.sync.outputs.changed == 'true'
+        env:
+          MINOR: ${{ steps.sync.outputs.minor }}
+          PREVIOUS: ${{ steps.sync.outputs.previous }}
+        run: |
+          BRANCH="chore/target-waas-${MINOR}"
+          if git ls-remote --exit-code --heads origin "${BRANCH}" >/dev/null 2>&1; then
+            echo "branch ${BRANCH} already exists, bump already pending"
+            exit 0
+          fi
+          # printf per line, not an inline multi-line --body: that would
+          # carry this step's YAML indentation into the markdown.
+          printf '%s\n' \
+            "waas now ships \`${MINOR}\` (its chart's \`appVersion\`), so these images follow: \`release:\` moves \`${PREVIOUS}\` -> \`${MINOR}\`." \
+            "" \
+            "Merging this rebuilds **every** image (\`release:\` is a shared input), and the \`auto-release\` label then makes \`release.yml\` promote them to \`${MINOR}.0\` and publish \`catalogs/${MINOR}/catalog.yaml\`. The same \`images.yaml\` push fires \`catalog-kasmweb.yml\`, so \`catalogs/${MINOR}/catalog-kasmweb.yaml\` appears too." \
+            "" \
+            "Until both land, a waas \`${MINOR}\` chart derives catalog URLs that 404: the registry approvals still hold, but the picker has no metadata. Opened by \`release-sync.yml\`." \
+            > "${RUNNER_TEMP}/pr-body.md"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "${BRANCH}"
+          git add images.yaml
+          git commit -m "chore(release): target waas ${MINOR}"
+          git push origin "${BRANCH}"
+          gh pr create \
+            --title "chore(release): target waas ${MINOR}" \
+            --body-file "${RUNNER_TEMP}/pr-body.md" \
+            --label auto-release \
+            --base "${GITHUB_REF_NAME}" \
+            --head "${BRANCH}"

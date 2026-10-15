@@ -19,7 +19,7 @@ shared/              files bind-mounted into several images (Firefox apt install
 images.yaml          layers, release minor, pinned cores, default archs, trivy gate
 catalogs/<X.Y>/      per waas minor: catalog.yaml (our images, by release.yml),
                      catalog-kasmweb.yaml (upstream kasmweb, by catalog-kasmweb.yml)
-ci/                  catalog generators/validator, vendored waas schema, release helpers, tests
+ci/                  catalog generators/validator, vendored waas schema, release/schema sync, tests
 examples/            WorkspaceTemplate and NetworkPolicy consuming an image
 HARDENING.md         app-specific gaps on top of the core's hardening contract
 ```
@@ -137,6 +137,17 @@ commits the catalog, then creates the git tag and GitHub Release. Manual
 dispatch targets the last green push build of `main` (a catalog commit
 made with `GITHUB_TOKEN` triggers no build, so `HEAD` may carry no
 images).
+
+`release-sync.yml` is what decides *when* a new minor happens: daily, it
+compares `images.yaml` `release:` with waas' `appVersion` minor
+(`ci/sync_release.sh` — appVersion because that is the number the chart
+interpolates into both catalog URLs) and opens a bump PR labelled
+`auto-release` when waas has moved ahead. It never merges: `release:` is
+a shared input, so the bump rebuilds every image. Merging it is the only
+manual step left in a waas release — the build, the promotion to
+`X.Y.0`, `catalogs/X.Y/catalog.yaml` and `catalog-kasmweb.yaml` all
+follow from it. It reads waas over the public API, so no cross-repo
+token exists anywhere in this repo.
 
 ## Local loop
 
