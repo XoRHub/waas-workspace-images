@@ -15,6 +15,15 @@ MESSAGE="${2:-chore(catalog): publish ${FILE}}"
 LOCAL_SHA=$(git hash-object "${FILE}")
 REMOTE_SHA=$(gh api "repos/${GITHUB_REPOSITORY}/contents/${FILE}?ref=main" --jq .sha 2>/dev/null || true)
 
+# On a 404 — the first publish of a minor — `gh api` writes the raw error
+# body to stdout instead of applying --jq, so REMOTE_SHA would hold
+# `{"message":"Not Found",...}`: non-empty, and with a space in it, which
+# word-splits SHA_FLAG below into a second positional argument ("accepts
+# 1 arg(s), received 2"). Only a real blob sha counts.
+case "${REMOTE_SHA}" in
+    "" | *[!0-9a-f]*) REMOTE_SHA="" ;;
+esac
+
 if [ "${LOCAL_SHA}" = "${REMOTE_SHA}" ]; then
     echo "${FILE} unchanged, nothing to commit"
     exit 0
