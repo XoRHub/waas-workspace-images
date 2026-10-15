@@ -21,8 +21,19 @@ CVE-2026-53539
 CVE-2026-48818
 CVE-2026-54283
 
-# GHSA-6v7p-g79w-8964: msgpack 1.1.2 (out-of-bounds read on crafted
-# input), fixed in 1.2.1. Same regime as the entries above — it is part
-# of the uv environment the Hermes installer resolves, and it only ever
-# decodes payloads the agent itself produced inside the pod.
+# Same regime as the entries above, all in the Python environment the
+# Hermes installer resolves (uv.lock) or in the CPython build uv ships:
+#
+# GHSA-6v7p-g79w-8964 — msgpack 1.1.2 out-of-bounds read, fixed in
+#   1.2.1. Only ever decodes payloads the agent produced in the pod.
+# CVE-2026-97687 / CVE-2026-97689 — urllib3 2.7.0 (HTTPS-proxy TLS
+#   override, chunk-parser DoS), fixed in 2.8.0. No proxy is configured
+#   in the image, and the agent's HTTP traffic is its own outbound calls.
+# CVE-2025-47273 — setuptools 70.3.0 path traversal in PackageIndex,
+#   fixed in 78.1.1. It sits in uv's own CPython distribution, not in
+#   hermes' venv, and nothing installs packages at runtime: the tree is
+#   root-owned and the pod rootfs is read-only.
 GHSA-6v7p-g79w-8964
+CVE-2026-97687
+CVE-2026-97689
+CVE-2025-47273
