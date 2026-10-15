@@ -15,3 +15,22 @@ CVE-2019-16777
 # from the desktop baseline).
 CVE-2022-25235
 CVE-2022-25236
+
+# CVE-2026-102422 — NOT a false positive: shell-quote 1.10.0 (arbitrary
+# command execution through crafted input, fixed in 1.11.0) vendored
+# inside VS Code itself,
+# usr/share/code/resources/app/node_modules/shell-quote. The version is
+# whatever the Microsoft APT repo ships; this image pins the repo and
+# its signing key, not VS Code's bundled tree, so the fix arrives with a
+# VS Code release.
+#
+# Accepted because it crosses no privilege boundary here: VS Code reaches
+# shell-quote when building terminal/task command lines out of the user's
+# own workspace config, and the user of a devtools session already owns
+# an unrestricted shell in that container (devtools-dev even ships sudo,
+# HARDENING.md § Reduced profile). "Arbitrary command execution as the
+# session user" is this image's baseline capability, not an escalation —
+# and the pod stays unprivileged, read-only-rootfs, caps dropped.
+# Re-test on every VS Code bump; drop the line as soon as the bundled
+# copy reaches 1.11.0.
+CVE-2026-102422
