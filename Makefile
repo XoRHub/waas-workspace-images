@@ -9,9 +9,9 @@
 #   make catalog VERSION=0.4.0    # catalogs/0.4/catalog.yaml, schema-validated
 #   make schema-sync              # re-vendor the waas catalog schema
 #
-# A variant built on a core pulls the pinned ref of images.yaml cores:
-# (a placeholder digest until the cores are published). CORE_REF replaces
-# it with a core built locally in the sibling checkout, e.g.
+# A variant built on a core pulls the ref pinned in images.yaml's
+# `cores:`. CORE_REF replaces it with a core built locally in the
+# sibling checkout, e.g.
 # `CORE_REF=waas-local/core-ubuntu-noble:dev make build IMAGE=firefox`.
 # An in-pipeline parent (devtools <- ubuntu-desktop-noble) is always the
 # local :dev tag: build it first.

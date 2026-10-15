@@ -119,10 +119,6 @@ dispatch targets the last green push build of `main` (a catalog commit
 made with `GITHUB_TOKEN` triggers no build, so `HEAD` may carry no
 images).
 
-**Cores are not published yet**: the digests in `images.yaml` `cores:`
-are placeholders (all zeros). Renovate replaces them with the first core
-release; until then a local build needs `CORE_REF` (below).
-
 ## Local loop
 
 ```

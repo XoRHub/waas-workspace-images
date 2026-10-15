@@ -11,12 +11,11 @@ layers: [desktop, apps]
 release: "0.4"
 
 # External parents, referenced by manifests' `from:`. Pinned tag@digest,
-# bumped by Renovate (group "cores"). The digests below are placeholders
-# until the cores are published: local builds must use CORE_REF.
+# bumped by Renovate (group "cores").
 cores:
-  core-ubuntu-noble: ghcr.io/xorhub/waas-core-images/core-ubuntu-noble:1.0.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
-  core-debian-13: ghcr.io/xorhub/waas-core-images/core-debian-13:1.0.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
-  core-fedora-43: ghcr.io/xorhub/waas-core-images/core-fedora-43:1.0.0@sha256:0000000000000000000000000000000000000000000000000000000000000000
+  core-ubuntu-noble: ghcr.io/xorhub/waas-core-images/core-ubuntu-noble:1.0.0@sha256:b3a9f3d2519b5ab2280f92a87f0f7131af202c9df3b7e7f07ff928ac806f207e
+  core-debian-13: ghcr.io/xorhub/waas-core-images/core-debian-13:1.0.0@sha256:97066cd47820ae138af258a35f2b3627a79e933d6d25ca8d1e939821be53af2e
+  core-fedora-43: ghcr.io/xorhub/waas-core-images/core-fedora-43:1.0.0@sha256:76f3c2c1277073487f405da17cd4f2a85915edf9b57efad4927dfc7bbdc737c8
 
 # OS keys a manifest may name (`os:`); the OS itself comes from the core.
 os:
