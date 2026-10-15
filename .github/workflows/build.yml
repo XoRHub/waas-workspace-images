@@ -8,7 +8,9 @@
 # Two dependency depths: desktops and kiosk apps on a core (layer-0),
 # devtools on ubuntu-desktop-noble (layer-1). A deeper tree adds a
 # layer-N/scan-N/merge-N set (layer-N needs carry + merge-N-1) and
-# raises max-depth.
+# raises max-depth. Every job of such a set needs the explicit
+# `!cancelled()` guard: `carry` is skipped on a full rebuild and that
+# skip propagates to everything downstream of it.
 name: build
 
 on:
@@ -190,9 +192,17 @@ jobs:
           image: ${{ toJSON(matrix) }}
           no-cache: ${{ inputs.no_cache || false }}
 
+  # layer-1 opts into running past a skipped `carry` (empty whenever every
+  # image is rebuilt). That skip propagates on down the graph, so its own
+  # dependents have to opt in as well — otherwise a full rebuild builds
+  # the layer-1 arch tags and then publishes no manifest list for them,
+  # and release.yml's promote fails on a g<sha> that was never merged.
   scan-1:
     needs: [setup, layer-1]
-    if: needs.setup.outputs.layer1 != '[]'
+    if: >-
+      !cancelled()
+      && needs.setup.outputs.layer1 != '[]'
+      && needs.layer-1.result == 'success'
     strategy:
       fail-fast: false
       matrix:
@@ -208,7 +218,10 @@ jobs:
 
   merge-1:
     needs: [setup, layer-1]
-    if: needs.setup.outputs.merge1 != '[]'
+    if: >-
+      !cancelled()
+      && needs.setup.outputs.merge1 != '[]'
+      && needs.layer-1.result == 'success'
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
