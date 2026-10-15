@@ -22,8 +22,10 @@ USER 0
 ARG TARGETARCH
 # renovate: datasource=node-version depName=node
 ARG NODE_VERSION=22.23.1
-# The npm bundled with node vendors picomatch/sigstore versions with HIGH
-# CVEs (trivy gate); npm 12 resolves both.
+# Build-time only: npm drives the two workspace builds below and is then
+# deleted along with node_modules. Its own vendored tree is where the
+# node CVEs live (picomatch/sigstore, then brace-expansion/undici/tar),
+# so the image ships node without it rather than chasing npm releases.
 # renovate: datasource=npm depName=npm
 ARG NPM_VERSION=12.0.1
 # renovate: datasource=github-tags depName=NousResearch/hermes-agent
@@ -35,7 +37,10 @@ ARG HERMES_VERSION=v2026.7.7.2
 # git/ripgrep/ffmpeg: upstream's runtime deps. Both front-ends are
 # prebuilt: a lazy first-run build can never work on a root-owned,
 # read-only tree. node_modules is build scaffolding only (the Python
-# server serves web's dist; ui-tui's entry.js is self-contained).
+# server serves web's dist; ui-tui's entry.js is self-contained), so
+# every one of them goes — including apps/desktop's, which the installer
+# populates for an Electron app this image never launches and which is
+# the single biggest source of trivy findings here.
 # /root/.hermes is install-time state for the wrong user.
 # hadolint ignore=DL3008,DL3003,DL3016
 RUN apt-get update && \
@@ -60,8 +65,12 @@ RUN apt-get update && \
     npm run build -w ui-tui && \
     test -f hermes_cli/web_dist/index.html && \
     test -f ui-tui/dist/entry.js && \
-    rm -rf node_modules web/node_modules ui-tui/node_modules \
+    find /usr/local/lib/hermes-agent -type d -name node_modules \
+        -prune -exec rm -rf {} + && \
+    rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+        /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
         /root/.npm /root/.hermes && \
+    node --version && test ! -e /usr/local/bin/npm && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* /var/cache/* /var/log/* /home/waas_user/.gnupg /tmp/*
 

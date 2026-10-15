@@ -20,3 +20,9 @@ CVE-2026-59950
 CVE-2026-53539
 CVE-2026-48818
 CVE-2026-54283
+
+# GHSA-6v7p-g79w-8964: msgpack 1.1.2 (out-of-bounds read on crafted
+# input), fixed in 1.2.1. Same regime as the entries above — it is part
+# of the uv environment the Hermes installer resolves, and it only ever
+# decodes payloads the agent itself produced inside the pod.
+GHSA-6v7p-g79w-8964
