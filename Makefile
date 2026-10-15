@@ -30,8 +30,15 @@ export WAAS_CORE_IMAGES_DIR
 TOOLKIT  := $(WAAS_CORE_IMAGES_DIR)/.github/actions
 PIPELINE := uv run $(TOOLKIT)/pipeline/generate_pipeline.py
 
+# A parse-time guard, so it fires whatever the goal — except for the kasm
+# catalog, which needs none of the toolkit (Docker Hub, the mapping and
+# the vendored schema only). Without this exemption its CI job would have
+# to clone waas-core-images purely to get past this line.
+GOALS := $(or $(MAKECMDGOALS),build)
+ifneq ($(filter-out kasm-catalog kasm-catalog-publish,$(GOALS)),)
 ifeq ($(wildcard $(TOOLKIT)/pipeline/generate_pipeline.py),)
 $(error core toolkit not found at $(TOOLKIT): clone git@github.com:XoRHub/waas-core-images.git next to this repo or set WAAS_CORE_IMAGES_DIR)
+endif
 endif
 
 # The matrix entry of IMAGE (IMG_*/SMOKE_* contract), as CI resolves it.
