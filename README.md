@@ -17,8 +17,9 @@ apps/devtools        devtools, devtools-dev — XFCE + VS Code + toolchain, FROM
 apps/hermes-agent    hermes-agent, hermes-agent-dev — Hermes Agent dashboard kiosk
 shared/              files bind-mounted into several images (Firefox apt install + policies, mise)
 images.yaml          layers, release minor, pinned cores, default archs, trivy gate
-catalogs/<X.Y>/      catalog.yaml per waas minor — generated and committed by release.yml
-ci/                  catalog generator/validator, vendored waas schema, release helpers, tests
+catalogs/<X.Y>/      per waas minor: catalog.yaml (our images, by release.yml),
+                     catalog-kasmweb.yaml (upstream kasmweb, by catalog-kasmweb.yml)
+ci/                  catalog generators/validator, vendored waas schema, release helpers, tests
 examples/            WorkspaceTemplate and NetworkPolicy consuming an image
 HARDENING.md         app-specific gaps on top of the core's hardening contract
 ```
@@ -87,6 +88,24 @@ in sync by PR). `release.yml` commits it to `main` for every release
 through the Contents API (signed commits); `main` hosts the catalogs of
 every supported minor.
 
+`catalogs/<X.Y>/catalog-kasmweb.yaml` is the second catalog of the same
+minor, backing the chart's `catalogs.kasm` bootstrap: the upstream
+`docker.io/kasmweb/*` images, the only ones here this repo does not
+build. It lives with the images rather than in `waas` because this is
+the repo that produces catalogs — same schema, same validator, same
+Contents-API commit path, same per-minor layout key. It is kept out of
+`release.yml` on purpose: it tracks upstream Kasm releases, not ours, so
+`catalog-kasmweb.yml` refreshes it daily (and on a push touching
+`images.yaml` or the mapping, so a new minor's file exists as soon as a
+chart asks for it). `ci/generate_kasm_catalog.py` resolves each image's
+newest `X.Y.Z` tag and its architectures from Docker Hub and derives
+`profile`/`recommended` by actually running the image under the core's
+hardened flags (`ci/probe_kasm_hardening.sh`, CI only — kasmweb images
+carry no HARDENING.md to read a profile off). Which images to publish is
+hand-curated in `ci/kasm-catalog-mapping.yaml`. Everything is
+best-effort: an unreachable Hub falls back to the mapping's
+`knownVersion`, an inconclusive probe omits `profile`.
+
 ## Pipeline
 
 `build.yml` runs on every PR and `main` push, on the core toolkit's
@@ -128,6 +147,7 @@ make smoke IMAGE=firefox              # the CI smoke test against the local buil
 make lint                             # hadolint + shellcheck + actionlint (docker)
 make test                             # catalog unit tests (uv)
 make catalog VERSION=0.4.0            # catalogs/0.4/catalog.yaml, schema-validated
+make kasm-catalog                     # catalogs/<X.Y>/catalog-kasmweb.yaml (no probe)
 ```
 
 The toolkit is read from a sibling checkout of `waas-core-images`

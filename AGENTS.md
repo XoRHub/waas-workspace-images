@@ -22,7 +22,9 @@ directory (discovered automatically — adding an image is adding a
 directory). Generated, gitignored, never hand-edited:
 `github-matrices.json`, `*/Dockerfile.generated` (from `recipe:`
 blocks, by the toolkit's compiler). Committed by CI only:
-`catalogs/<X.Y>/catalog.yaml` (release.yml, Contents API). The
+`catalogs/<X.Y>/catalog.yaml` (release.yml) and
+`catalogs/<X.Y>/catalog-kasmweb.yaml` (catalog-kasmweb.yml), both
+through the Contents API. The
 per-image docs go to the CI job summary. There is no `version:` field
 anywhere: `images.yaml` `release:` is the minor, the git tag the patch.
 
@@ -57,9 +59,17 @@ explicitly, and flag it if a change would:
   through `WAAS_CORE_IMAGES_DIR` locally (`Makefile`,
   `ci/generate_catalog.py`). If it lacks something this repo needs,
   change it there (a compatible change moves `actions/v1`).
-- Catalog tooling (`ci/generate_catalog.py`, `ci/validate_catalog.py`,
-  `ci/schema/`, `ci/sync_schema.sh`, `ci/commit_catalog.sh`) is
-  workspace-only and lives here.
+- Catalog tooling (`ci/generate_catalog.py`,
+  `ci/generate_kasm_catalog.py`, `ci/probe_kasm_hardening.sh`,
+  `ci/validate_catalog.py`, `ci/schema/`, `ci/sync_schema.sh`,
+  `ci/commit_catalog.sh`) is workspace-only and lives here. waas owns
+  the schema and reads catalogs; it does not produce any — don't move a
+  generator back there.
+- `catalog-kasmweb.yaml` publishes upstream `docker.io/kasmweb/*`
+  images, the only ones in these catalogs this repo does not build.
+  Which ones is hand-curated in `ci/kasm-catalog-mapping.yaml`; its
+  refresh is deliberately outside `release.yml` (it tracks upstream
+  Kasm, not our releases).
 - Files several images need (`shared/*`) are bind-mounted through
   buildx named contexts (`buildContexts:` in the manifest), never
   duplicated per directory.
@@ -76,6 +86,7 @@ make test                                              # catalog unit tests
 CORE_REF=waas-local/core-ubuntu-noble:dev make build IMAGE=<variant>
 CORE_REF=waas-local/core-ubuntu-noble:dev make smoke IMAGE=<variant>
 make catalog VERSION=<X.Y.n>                           # generate + schema-validate
+make kasm-catalog                                      # kasm catalog, no Docker probe
 ```
 
 The pinned cores are placeholders until published: build the core in

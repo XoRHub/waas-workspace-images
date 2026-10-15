@@ -7,6 +7,7 @@
 #   make lint                     # hadolint + shellcheck + actionlint (docker)
 #   make test                     # catalog unit tests (uv)
 #   make catalog VERSION=0.4.0    # catalogs/0.4/catalog.yaml, schema-validated
+#   make kasm-catalog             # catalogs/<X.Y>/catalog-kasmweb.yaml
 #   make schema-sync              # re-vendor the waas catalog schema
 #
 # A variant built on a core pulls the ref pinned in images.yaml's
@@ -39,7 +40,8 @@ ENTRY = $(PIPELINE) --all --output github-matrices.json >/dev/null && \
 BASE_IMAGE = $$($(ENTRY) | jq -r --arg r '$(REGISTRY)' --arg c '$(CORE_REF)' \
 	'if .IMG_PARENT != "" then "\($$r)/\(.IMG_PARENT):dev" elif $$c != "" then $$c else .IMG_BASE_IMAGE end')
 
-.PHONY: build run smoke lint test catalog schema-sync clean
+.PHONY: build run smoke lint test catalog kasm-catalog kasm-catalog-publish \
+	schema-sync clean
 
 build:
 	docker build $(BUILD_FLAGS) --build-arg BASE_IMAGE=$(BASE_IMAGE) -t $(TAG) $$($(PIPELINE) --build-flags $(IMAGE))
@@ -71,6 +73,26 @@ catalog:
 	@test -n "$(VERSION)" || { echo "usage: make catalog VERSION=X.Y.Z"; exit 1; }
 	uv run ci/generate_catalog.py --version $(VERSION)
 	uv run ci/validate_catalog.py catalogs/$(basename $(VERSION))/catalog.yaml
+
+# --- kasm catalog ---------------------------------------------------------
+# catalogs/<X.Y>/catalog-kasmweb.yaml — the upstream docker.io/kasmweb
+# images, the one catalog here whose images this repo does not build. X.Y
+# is images.yaml's `release:`, the same minor catalog.yaml is keyed on, so
+# a waas chart derives both URLs from its own appVersion minor. Decoupled
+# from an image release: regenerated on a schedule, not by release.yml
+# (.github/workflows/catalog-kasmweb.yml). KASM_PROBE=1 adds the Docker
+# hardening probe (slow, needs Docker — CI only).
+RELEASE_MINOR := $(shell sed -nE 's/^release: *"?([0-9]+\.[0-9]+)"?.*$$/\1/p' images.yaml)
+KASM_CATALOG  := catalogs/$(RELEASE_MINOR)/catalog-kasmweb.yaml
+KASM_PROBE    ?=
+
+kasm-catalog:
+	uv run ci/generate_kasm_catalog.py --output $(KASM_CATALOG) $(if $(KASM_PROBE),--probe-hardening)
+	uv run ci/validate_catalog.py $(KASM_CATALOG)
+
+# CI only: commit the regenerated file to main via the Contents API.
+kasm-catalog-publish: kasm-catalog
+	sh ci/commit_catalog.sh $(KASM_CATALOG) "chore(catalog): regenerate $(KASM_CATALOG)"
 
 schema-sync:
 	sh ci/sync_schema.sh

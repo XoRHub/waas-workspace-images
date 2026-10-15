@@ -1,0 +1,49 @@
+# Scheduled refresh of catalogs/<X.Y>/catalog-kasmweb.yaml — the upstream
+# docker.io/kasmweb images, the one catalog here whose images this repo
+# does not build (the waas chart's `catalogs.kasm` bootstrap). Served raw
+# from main, one file per waas MAJOR.MINOR so a released chart never
+# reads a catalog generated for a newer schema.
+#
+# Separate from release.yml on purpose: this catalog tracks upstream
+# Kasm releases, not ours, so it must refresh without cutting a release
+# of our own images. X.Y comes from images.yaml's `release:` (Makefile
+# RELEASE_MINOR), which is why a main push touching that file also runs
+# it: the new minor's file must exist as soon as a chart derives its URL.
+#
+# Daily 06:00 UTC: Kasm cuts releases every few months, so daily is
+# generous while staying far from Docker Hub's anonymous rate limits.
+# --probe-hardening pulls+runs each resolved image
+# (ci/probe_kasm_hardening.sh) — only here, never in the local loop. The
+# result is committed via the Contents API (ci/commit_catalog.sh): main
+# requires verified signatures and a bot's plain push is never Verified.
+#
+# Caveat: GitHub disables cron-triggered workflows after 60 days without
+# repo activity — re-enable from the Actions tab, or use the
+# workflow_dispatch trigger, which is also the manual refresh path after
+# editing ci/kasm-catalog-mapping.yaml.
+
+name: catalog-kasmweb
+
+on:
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - images.yaml
+      - ci/kasm-catalog-mapping.yaml
+
+permissions:
+  contents: write   # commit the regenerated catalog to main (Contents API)
+
+jobs:
+  publish-catalog-kasmweb:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v9.0.0
+      - name: Regenerate, validate and commit the kasm catalog
+        run: make kasm-catalog-publish KASM_PROBE=1

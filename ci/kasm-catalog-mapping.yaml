@@ -1,0 +1,47 @@
+# Hand-curated mapping of the upstream docker.io/kasmweb/* images the
+# kasm catalog publishes (catalogs/<X.Y>/catalog-kasmweb.yaml, which
+# backs the `catalogs.kasm` bootstrap of the waas chart). The only
+# images in this repo's catalogs that it does not build — see waas'
+# docs/image-catalog.md § Kasm catalog.
+#
+# ci/generate_kasm_catalog.py resolves the newest X.Y.Z release tag
+# per image from Docker Hub; the full-catalog mode never writes back
+# here, but `generate_kasm_catalog.py <name>` (single-image mode) DOES
+# append a minimal name/app/knownVersion block below if <name> isn't
+# listed yet — as plain text, so it can't strip these comments. Fill in
+# icon/displayName by hand afterward if wanted. knownVersion is only the
+# offline fallback when Docker Hub is unreachable — refresh it
+# occasionally, it does not need to track every Kasm release.
+#
+# description: optional free text. Emitted as-is when present; if
+# omitted, a description the published catalog already carried is kept,
+# never erased.
+#
+# icon: dashboard-icons slug (github.com/homarr-labs/dashboard-icons).
+# Verify https://cdn.jsdelivr.net/gh/homarr-labs/dashboard-icons/svg/<slug>.svg
+# answers 200 before committing — an invalid slug fails nothing here,
+# the portal just falls back to a generic OS icon silently.
+#
+# architectures/profile/recommended are NOT hand-curated: the generator
+# derives architectures from Docker Hub's per-tag manifest-list data and
+# profile/recommended from an actual hardening probe
+# (ci/probe_kasm_hardening.sh, --probe-hardening only). A curated
+# architectures: field used to live here and drifted stale (claimed
+# amd64-only while kasmweb's X.Y.Z tags are multi-arch) — don't
+# reintroduce it.
+images:
+  - name: terminal            # docker.io/kasmweb/terminal
+    app: terminal
+    icon: terminal            # no gnome-terminal slug upstream; terminal exists
+    displayName: "Kasm Terminal"
+    knownVersion: "1.19.0"
+
+  - name: firefox
+    app: firefox
+    icon: firefox
+    displayName: "Kasm Firefox"
+    knownVersion: "1.19.0"
+
+  - name: doom            # docker.io/kasmweb/doom
+    app: doom
+    knownVersion: "1.19.0"
