@@ -1,0 +1,51 @@
+apiVersion: waas.xorhub.io/catalog/v1
+images:
+- image: docker.io/kasmweb/terminal:1.19.0
+  os: linux
+  app: terminal
+  version: 1.19.0
+  icon: terminal
+  displayName: Kasm Terminal
+  architectures:
+  - amd64
+  - arm64
+  profile: normal
+  recommended:
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      fsGroup: 1000
+      seccompProfile:
+        type: RuntimeDefault
+- image: docker.io/kasmweb/firefox:1.19.0
+  os: linux
+  app: firefox
+  version: 1.19.0
+  icon: firefox
+  displayName: Kasm Firefox
+  architectures:
+  - amd64
+  - arm64
+  profile: normal
+  recommended:
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      fsGroup: 1000
+      seccompProfile:
+        type: RuntimeDefault
+- image: docker.io/kasmweb/doom:1.19.0
+  os: linux
+  app: doom
+  version: 1.19.0
+  architectures:
+  - amd64
+  - arm64
+  profile: normal
+  recommended:
+    podSecurityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      fsGroup: 1000
+      seccompProfile:
+        type: RuntimeDefault
