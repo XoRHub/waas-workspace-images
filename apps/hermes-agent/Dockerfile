@@ -29,7 +29,7 @@ ARG NODE_VERSION=22.23.1
 # renovate: datasource=npm depName=npm
 ARG NPM_VERSION=12.0.1
 # renovate: datasource=github-tags depName=NousResearch/hermes-agent
-ARG HERMES_VERSION=v2026.7.7.2
+ARG HERMES_VERSION=v2026.9.24
 
 # The installer is fetched from the same tag as the code it installs:
 # the floating https://hermes-agent.nousresearch.com/install.sh moved to
