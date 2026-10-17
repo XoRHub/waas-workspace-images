@@ -67,7 +67,7 @@ smoke: build
 
 lint:
 	$(PIPELINE) --all --output github-matrices.json >/dev/null
-	docker run --rm -v "$(CURDIR):/mnt" -w /mnt ghcr.io/hadolint/hadolint:2.12.0-alpine \
+	docker run --rm -v "$(CURDIR):/mnt" -w /mnt ghcr.io/hadolint/hadolint:v2.15.1-alpine \
 		hadolint --failure-threshold warning $$(find desktop apps -name Dockerfile -o -name Dockerfile.generated)
 	docker run --rm -v "$(CURDIR):/mnt" -w /mnt koalaman/shellcheck:stable -S warning \
 		ci/*.sh shared/*/*.sh apps/*/rootfs/usr/local/bin/* apps/*/rootfs/etc/waas/entrypoint.d/*.sh
