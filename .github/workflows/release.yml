@@ -31,7 +31,7 @@ concurrency:
 
 jobs:
   version:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     if: >-
       github.ref_name == github.event.repository.default_branch
       && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
@@ -97,7 +97,7 @@ jobs:
   setup:
     needs: version
     if: needs.version.outputs.proceed == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       variants: ${{ steps.pipeline.outputs.variants }}
     steps:
@@ -112,7 +112,7 @@ jobs:
 
   promote:
     needs: [version, setup]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -132,7 +132,7 @@ jobs:
   # through the Contents API (signed), see ci/commit_catalog.sh.
   catalog:
     needs: [version, promote]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ needs.version.outputs.version }}
@@ -146,7 +146,7 @@ jobs:
           repository: XoRHub/waas-core-images
           ref: actions/v1
           path: .waas-core-images
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: astral-sh/setup-uv@v10.3.0
       - run: |
           catalog="catalogs/${VERSION%.*}/catalog.yaml"
           uv run ci/generate_catalog.py --version "${VERSION}"
@@ -155,7 +155,7 @@ jobs:
 
   tag:
     needs: [version, catalog]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - env:
