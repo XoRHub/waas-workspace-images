@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.25@sha256:0adf442eae370b6087e08edc7c50b552d80ddf261576f4ebd6421006b2461f12
+# syntax=docker/dockerfile:1.28@sha256:bb22d9815c728170f72750f4e5b0d672e06176142e1d602c7e66c050100b7e5b
 # XFCE desktop on the Fedora core — dnf sibling of desktop/xfce/Dockerfile.
 # Package deltas verified against Fedora 43: xfdesktop (not xfdesktop4),
 # Thunar (capitalised), openssh-clients, vim-enhanced.
