@@ -42,7 +42,7 @@ env:
 
 jobs:
   lint:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       # The toolkit's generator materialises the recipe Dockerfiles and
@@ -52,7 +52,7 @@ jobs:
           repository: XoRHub/waas-core-images
           ref: actions/v1
           path: .waas-core-images
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: astral-sh/setup-uv@v10.3.0
       - name: Materialise recipe Dockerfiles
         run: uv run .waas-core-images/.github/actions/pipeline/generate_pipeline.py --all --output "${RUNNER_TEMP}/matrices.json"
       - name: hadolint
@@ -70,7 +70,7 @@ jobs:
         run: uv run --with pyyaml==6.0.2 --with jsonschema==4.26.0 python -m unittest discover -s ci/tests -v
 
   setup:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       layer0: ${{ steps.pipeline.outputs.layer0 }}
       layer1: ${{ steps.pipeline.outputs.layer1 }}
@@ -109,7 +109,7 @@ jobs:
   carry:
     needs: setup
     if: needs.setup.outputs.carry != '[]'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -145,7 +145,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.setup.outputs.layer0) }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: XoRHub/waas-core-images/.github/actions/scan@actions/v1
@@ -157,7 +157,7 @@ jobs:
   merge-0:
     needs: [setup, layer-0]
     if: needs.setup.outputs.merge0 != '[]'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
@@ -207,7 +207,7 @@ jobs:
       fail-fast: false
       matrix:
         include: ${{ fromJSON(needs.setup.outputs.layer1) }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v7
       - uses: XoRHub/waas-core-images/.github/actions/scan@actions/v1
@@ -222,7 +222,7 @@ jobs:
       !cancelled()
       && needs.setup.outputs.merge1 != '[]'
       && needs.layer-1.result == 'success'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       fail-fast: false
       matrix:
