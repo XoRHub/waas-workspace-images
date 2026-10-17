@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Default WAAS_APP of the hermes-agent image: Firefox kiosk on the local
-# Hermes dashboard (supervised by 60-hermes-dashboard.sh). supervisord
-# starts both concurrently, so wait for the port; if it never comes up
-# (dashboard disabled, or crashed) fall back to the plain TUI so the
-# session always lands somewhere usable.
+# Session of the hermes-agent image when WAAS_HERMES_DASHBOARD=1 (exec'd
+# by waas-hermes-session): Firefox kiosk on the local Hermes dashboard
+# (supervised by 60-hermes-dashboard.sh). supervisord starts both
+# concurrently, so wait for the port; if it never comes up (crashed) fall
+# back to the plain TUI so the session always lands somewhere usable.
 set -euo pipefail
 
 DASHBOARD_URL="http://127.0.0.1:9119"
