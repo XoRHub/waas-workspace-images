@@ -63,7 +63,7 @@ jobs:
       - name: shellcheck
         run: shellcheck -S warning ci/*.sh shared/*/*.sh apps/*/rootfs/usr/local/bin/* apps/*/rootfs/etc/waas/entrypoint.d/*.sh
       - name: actionlint
-        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.7 -color
+        run: docker run --rm -v "$PWD:/repo" -w /repo rhysd/actionlint:1.7.12 -color
       - name: Unit tests
         env:
           WAAS_CORE_IMAGES_DIR: .waas-core-images
