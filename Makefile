@@ -71,7 +71,7 @@ lint:
 		hadolint --failure-threshold warning $$(find desktop apps -name Dockerfile -o -name Dockerfile.generated)
 	docker run --rm -v "$(CURDIR):/mnt" -w /mnt koalaman/shellcheck:stable -S warning \
 		ci/*.sh shared/*/*.sh apps/*/rootfs/usr/local/bin/* apps/*/rootfs/etc/waas/entrypoint.d/*.sh
-	docker run --rm -v "$(CURDIR):/repo" -w /repo rhysd/actionlint:1.7.7 -color
+	docker run --rm -v "$(CURDIR):/repo" -w /repo rhysd/actionlint:1.7.12 -color
 
 test:
 	uv run --with pyyaml==6.0.2 --with jsonschema==4.26.0 python -m unittest discover -s ci/tests -v
