@@ -40,6 +40,11 @@
       "matchManagers": ["github-actions"],
       "matchPackageNames": ["!XoRHub/waas-core-images"],
       "groupName": "github-actions"
+    },
+    {
+      "description": "The lint tool images (Makefile, workflows) are pinned by tag only: their regex captures no digest for docker:pinDigests to write.",
+      "matchPackageNames": ["ghcr.io/hadolint/hadolint", "rhysd/actionlint"],
+      "pinDigests": false
     }
   ],
   "customManagers": [
@@ -48,7 +53,7 @@
       "description": "Pinned cores in images.yaml: tag and digest.",
       "managerFilePatterns": ["/^images\\.yaml$/"],
       "matchStrings": [
-        "^\\s+core-[a-z0-9-]+: (?<depName>ghcr\\.io/xorhub/waas-core-images/[a-z0-9-]+):(?<currentValue>[0-9.]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+        "\\n\\s+core-[a-z0-9-]+: (?<depName>ghcr\\.io/xorhub/waas-core-images/[a-z0-9-]+):(?<currentValue>[0-9.]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
       ],
       "datasourceTemplate": "docker"
     },
