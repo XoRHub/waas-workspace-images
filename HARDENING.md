@@ -58,16 +58,21 @@ first on `PATH`, so a user-installed `python3` shadows the image's.
 
 ## hermes-agent
 
-- The web dashboard (`hermes dashboard`, supervised by
-  `rootfs/etc/waas/entrypoint.d/60-hermes-dashboard.sh`) binds
-  `127.0.0.1:9119` only: reachable solely through the password-gated
-  VNC display. `WAAS_HERMES_DASHBOARD=0` starts no server.
+- The default session is the desktop app, whose `hermes serve` backend
+  binds an ephemeral loopback port (`--host 127.0.0.1 --port 0`);
+  `WAAS_HERMES_DASHBOARD=1` swaps in the web dashboard
+  (`hermes dashboard`, supervised by
+  `rootfs/etc/waas/entrypoint.d/60-hermes-dashboard.sh`) on
+  `127.0.0.1:9119`. Either is reachable solely through the
+  password-gated VNC display.
 - Keys, sessions and memories live in `~/.hermes` on the home PVC; the
   install tree under `/usr/local` is root-owned and read-only, both
   front-ends are prebuilt at image build time.
-- `apps/hermes-agent/.trivyignore` accepts six real CVEs in Python
-  dependencies resolved by the upstream installer (mcp, python-multipart,
-  starlette): the image tracks upstream's tested dependency set, the fix
+- `apps/hermes-agent/.trivyignore` accepts real CVEs in Python
+  dependencies resolved by the upstream installer (mcp,
+  python-multipart, starlette, msgpack, urllib3, PyJWT, aiohttp, anyio,
+  httpcore2/httpx2; setuptools in uv's CPython), each with its exposure
+  inline: the image tracks upstream's tested dependency set, the fix
   arrives with a Hermes release. Re-evaluate on every `HERMES_VERSION`
   bump. Every other `.trivyignore` entry in this repo is an investigated
   false positive documented inline.
