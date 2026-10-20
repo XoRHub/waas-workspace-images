@@ -10,7 +10,7 @@
 set -eu
 
 # renovate: datasource=github-releases depName=jdx/mise
-MISE_VERSION=v2026.10.12
+MISE_VERSION=v2026.10.15
 FINGERPRINT=24853EC9F655CE80B48E6C3A8B81C9D17413A06D
 
 case "${TARGETARCH:?}" in
