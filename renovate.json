@@ -6,12 +6,17 @@
   ],
   "packageRules": [
     {
-      "description": "Patch and digest updates automerge once the required checks pass; the auto-release label makes release.yml cut a patch release after the merge.",
+      "description": "Patch and digest updates automerge once the required checks pass.",
       "matchUpdateTypes": ["patch", "digest"],
       "automerge": true,
       "automergeType": "pr",
-      "platformAutomerge": true,
-      "labels": ["auto-release"]
+      "platformAutomerge": true
+    },
+    {
+      "description": "Only updates that change image content get the auto-release label, which makes release.yml cut a patch release after the merge; CI tooling (Makefile, workflows) automerges without one.",
+      "matchUpdateTypes": ["patch", "digest"],
+      "matchFileNames": ["images.yaml", "apps/**", "desktop/**", "shared/**"],
+      "addLabels": ["auto-release"]
     },
     {
       "description": "Core bumps (images.yaml cores:, tag@digest) in one PR. A minor/major core is a CONTRACT.md change: reviewed by hand.",

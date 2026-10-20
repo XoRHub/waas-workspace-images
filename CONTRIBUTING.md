@@ -64,8 +64,9 @@ already-tested images of the last green `main` build to `X.Y.<n+1>`
 (`X.Y` from `images.yaml` `release:`), signs them, commits
 `catalogs/X.Y/catalog.yaml` to `main` and creates `vX.Y.n` + the
 GitHub Release. Patch releases also happen automatically after an
-automerged Renovate patch/digest PR (label `auto-release`, which must
-exist in the repository). A new waas minor is a PR bumping `release:`.
+automerged Renovate patch/digest PR touching image content (label
+`auto-release`, which must exist in the repository). A new waas minor
+is a PR bumping `release:`.
 
 ## Dependency updates
 
@@ -73,9 +74,10 @@ Renovate (`renovate.json`): the pinned cores (`cores:`, group
 `cores`), the toolkit ref (`actions/vN`), GitHub Actions, the tool
 images in the workflows/Makefile, and the annotated pins in the
 Dockerfiles and `shared/` scripts (node, npm, hermes-agent, mise).
-Patch and digest updates automerge once the required checks pass and
-trigger a patch release; minor/major core bumps and toolkit majors are
-reviewed by hand.
+Patch and digest updates automerge once the required checks pass;
+those touching `images.yaml`, `apps/`, `desktop/` or `shared/` also
+trigger a patch release. Minor/major core bumps and toolkit majors
+are reviewed by hand.
 
 ## Commit messages
 

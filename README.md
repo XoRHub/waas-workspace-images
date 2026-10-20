@@ -125,10 +125,12 @@ attest — are the core README's § Pipeline. Specific to this repo:
   rebuilds everything. No weekly rebuild here: the core's weekly patch
   release arrives as a Renovate PR (group `cores`) that rebuilds every
   dependent, refreshing their apt packages too.
-- **Renovate**: patch/digest updates automerge once the checks pass and
-  carry the `auto-release` label, so the merge triggers a patch
-  release. Minor/major core bumps (a runtime-contract change) and
-  toolkit majors (`actions/v2`) are reviewed by hand.
+- **Renovate**: patch/digest updates automerge once the checks pass;
+  those touching image content (`images.yaml`, `apps/`, `desktop/`,
+  `shared/`) carry the `auto-release` label, so the merge triggers a
+  patch release (CI-tooling bumps don't). Minor/major core bumps (a
+  runtime-contract change) and toolkit majors (`actions/v2`) are
+  reviewed by hand.
 
 `release.yml` promotes (never rebuilds): computes `X.Y.<n+1>`, retags
 the `g<sha>` images of the target `main` commit to `X.Y.n` + `X.Y` (+
