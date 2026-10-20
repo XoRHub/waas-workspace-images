@@ -8,7 +8,7 @@ layers: [desktop, apps]
 # version source in this repo. Releases are X.Y.<n>, n computed from the
 # existing vX.Y.* git tags by release.yml. Bumping it is a PR; every
 # image is rebuilt (it is a shared input).
-release: "0.5"
+release: "0.6"
 
 # External parents, referenced by manifests' `from:`. Pinned tag@digest,
 # bumped by Renovate (group "cores").
