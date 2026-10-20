@@ -10,9 +10,10 @@ CVE-2022-25236
 # starlette 1.0.1). Not patched here: the uv environment is upstream's
 # tested set, and this image tracks upstream as closely as possible; the
 # fix arrives with a Hermes release. Exposure: MCP/ASGI server-side
-# components, and the only server run is the dashboard bound to
-# 127.0.0.1:9119 behind the password-gated VNC display — "no known
-# remote path", not "proven unreachable".
+# components, and the only server run is the Hermes backend (`hermes
+# serve`, spawned by the desktop app on an ephemeral 127.0.0.1 port, or
+# the opt-in dashboard on 127.0.0.1:9119) behind the password-gated VNC
+# display — "no known remote path", not "proven unreachable".
 # Re-evaluate on every HERMES_VERSION bump.
 CVE-2026-52869
 CVE-2026-52870
@@ -37,3 +38,43 @@ GHSA-6v7p-g79w-8964
 CVE-2026-97687
 CVE-2026-97689
 CVE-2025-47273
+
+# Same regime again, re-evaluated for HERMES_VERSION v2026.9.24:
+#
+# CVE-2026-102266/102267/102268/102271/102272/102273 — PyJWT 2.13.0
+#   (key confusion, JWKS redirect, BOM forgery), fixed in 2.14.0. A
+#   direct upstream pin (pyproject.toml, already annotated with its
+#   PYSEC ids). Hermes does decode bearer JWTs server-side (dashboard
+#   OAuth verifier in plugins/dashboard_auth, the chronos cron-fire
+#   webhook on the serve/dashboard and gateway listeners, a no-op that
+#   never reaches jwt.decode until cron.chronos.expected_audience and
+#   nas_jwks_url are configured (none here)), but every verifying call
+#   pins `algorithms=` to asymmetric algs (the only unverified decodes
+#   are diagnostics after a failed verify and a client-side read of the
+#   agent's own API key), the dashboard providers register only once an
+#   operator configures an IdP (none here), and the servers bind
+#   127.0.0.1 behind the VNC display.
+# CVE-2026-111064 / GHSA-2g87-pp6c-29x5 — aiohttp 3.14.3 (DoS), fixed
+#   in 3.14.4. Pulled by the `[all]` extras; its servers (platform
+#   webhooks, the gateway API server) start only with platform
+#   credentials / an API_SERVER_KEY the image ships none of, and the pod
+#   exposes nothing but VNC.
+# CVE-2026-63374 — anyio 4.12.1 (TLS cert spoofing via IDN encoding),
+#   fixed in 4.14.2. Async backend of the agent's outbound HTTP clients
+#   only; needs an on-path attacker on an IDN host the agent reaches.
+# CVE-2026-84381 / CVE-2026-84382 — httpcore2/httpx2 2.7.0 (SOCKS5
+#   WebSocket plaintext, decompression amplification), fixed in
+#   2.10.0/2.12.0. The MCP SDK's outbound client; it honours
+#   HTTP(S)_PROXY/ALL_PROXY (socks:// included), but the image sets no
+#   proxy, so the SOCKS path is never taken.
+CVE-2026-102266
+CVE-2026-102267
+CVE-2026-102268
+CVE-2026-102271
+CVE-2026-102272
+CVE-2026-102273
+CVE-2026-111064
+GHSA-2g87-pp6c-29x5
+CVE-2026-63374
+CVE-2026-84381
+CVE-2026-84382

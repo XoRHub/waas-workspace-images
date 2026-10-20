@@ -8,8 +8,8 @@
 # workflow.
 #
 # Triggers: manual; automatic after a green main build whose commit came
-# from a PR labelled `auto-release` (Renovate patch/digest updates —
-# a core bump releases the rebuilt dependents).
+# from a PR labelled `auto-release` (Renovate patch/digest updates
+# to image content — a core bump releases the rebuilt dependents).
 name: release
 
 on:

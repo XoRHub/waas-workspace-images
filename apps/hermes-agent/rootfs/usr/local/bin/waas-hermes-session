@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Default WAAS_APP of the hermes-agent image: Hermes' native desktop app
+# (Electron, packaged at image build time; it spawns its own `hermes
+# serve` backend). WAAS_HERMES_DASHBOARD=1 hands over to waas-hermes-kiosk
+# instead — the Firefox kiosk on the web dashboard that
+# 60-hermes-dashboard.sh then supervises.
+#
+# --no-sandbox: Electron's inner sandbox needs a setuid chrome-sandbox or
+# user namespaces; the image strips setuid bits and the pod refuses
+# user namespaces (HARDENING.md § Browser inner sandboxes — the pod is
+# the sandbox boundary, same as Chrome and VS Code here).
+set -euo pipefail
+
+if [[ "${WAAS_HERMES_DASHBOARD:-0}" == "1" ]]; then
+    exec waas-hermes-kiosk
+fi
+exec hermes-desktop --no-sandbox
