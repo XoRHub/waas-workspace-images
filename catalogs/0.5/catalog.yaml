@@ -1,9 +1,9 @@
 apiVersion: waas.xorhub.io/catalog/v1
 images:
-- image: ghcr.io/xorhub/waas-workspace-images/chrome:0.5.2
+- image: ghcr.io/xorhub/waas-workspace-images/chrome:0.5.3
   os: linux
   app: chrome
-  version: 0.5.2
+  version: 0.5.3
   icon: google-chrome
   displayName: Google Chrome
   description: Google Chrome (dl.google.com APT repo, fingerprint pinned) in a single-app kiosk session — no desktop behind
@@ -34,10 +34,10 @@ images:
       protocols:
       - vnc
       default: '1'
-- image: ghcr.io/xorhub/waas-workspace-images/debian-desktop-13:0.5.2
+- image: ghcr.io/xorhub/waas-workspace-images/debian-desktop-13:0.5.3
   os: linux
   app: debian-desktop-13
-  version: 0.5.2
+  version: 0.5.3
   icon: debian-linux
   displayName: Debian Desktop 13
   description: 'XFCE desktop over VNC on the apt core. Ships a usable baseline: Firefox, git, openssh-client, curl, vim, less,
@@ -69,10 +69,10 @@ images:
       protocols:
       - vnc
       default: '1'
-- image: ghcr.io/xorhub/waas-workspace-images/devtools:0.5.2
+- image: ghcr.io/xorhub/waas-workspace-images/devtools:0.5.3
   os: linux
   app: devtools
-  version: 0.5.2
+  version: 0.5.3
   icon: visual-studio-code
   displayName: DevTools (hardened)
   description: 'XFCE work desktop with VS Code (Microsoft APT repo, fingerprint pinned) on top of the desktop baseline (Firefox,
@@ -105,10 +105,10 @@ images:
       protocols:
       - vnc
       default: '1'
-- image: ghcr.io/xorhub/waas-workspace-images/devtools-dev:0.5.2
+- image: ghcr.io/xorhub/waas-workspace-images/devtools-dev:0.5.3
   os: linux
   app: devtools-dev
-  version: 0.5.2
+  version: 0.5.3
   icon: visual-studio-code
   displayName: DevTools (dev)
   description: 'XFCE work desktop with VS Code (Microsoft APT repo, fingerprint pinned) on top of the desktop baseline (Firefox,
@@ -138,10 +138,10 @@ images:
       protocols:
       - vnc
       default: '1'
-- image: ghcr.io/xorhub/waas-workspace-images/fedora-desktop-43:0.5.2
+- image: ghcr.io/xorhub/waas-workspace-images/fedora-desktop-43:0.5.3
   os: linux
   app: fedora-desktop-43
-  version: 0.5.2
+  version: 0.5.3
   icon: fedora
   displayName: Fedora Desktop 43
   description: 'XFCE desktop on Fedora over VNC. Ships a usable baseline: Firefox, git, openssh-clients, curl, vim, less,
@@ -173,10 +173,10 @@ images:
       protocols:
       - vnc
       default: '1'
-- image: ghcr.io/xorhub/waas-workspace-images/firefox:0.5.2
+- image: ghcr.io/xorhub/waas-workspace-images/firefox:0.5.3
   os: linux
   app: firefox
-  version: 0.5.2
+  version: 0.5.3
   icon: firefox
   displayName: Firefox
   description: Managed, policy-hardened Firefox in a single-app kiosk session — the browser fills the screen, no desktop behind
@@ -208,55 +208,15 @@ images:
       protocols:
       - vnc
       default: '1'
-- image: ghcr.io/xorhub/waas-workspace-images/hermes-agent:0.5.2
-  os: linux
-  app: hermes-agent
-  version: 0.5.2
-  icon: hermes
-  displayName: Hermes-Agent (hardened)
-  description: Hermes Agent (Nous Research) with its web dashboard in a Firefox kiosk (chat TUI embedded) — self-improving
-    AI agent; keys, sessions, memories and skills persist in ~/.hermes on the home volume, and mise installs extra toolchains
-    there too, so they survive pod restarts.
-  architectures:
-  - amd64
-  - arm64
-  profile: hardened
-  recommended:
-    podSecurityContext:
-      runAsNonRoot: true
-      runAsUser: 1000
-      fsGroup: 1000
-      seccompProfile:
-        type: RuntimeDefault
-    securityContext:
-      allowPrivilegeEscalation: false
-      capabilities:
-        drop:
-        - ALL
-      readOnlyRootFilesystem: true
-    volumes:
-    - name: tmp
-      mountPath: /tmp
-    env:
-    - name: WAAS_AUDIO_ENABLED
-      description: Enable the unprivileged PulseAudio daemon (native protocol on TCP 4713, consumed by guacd's VNC client)
-        — boolean '0'/'1'.
-      protocols:
-      - vnc
-      default: '1'
-    - name: WAAS_HERMES_DASHBOARD
-      description: Serve the Hermes web dashboard in a Firefox kiosk (127.0.0.1:9119). Boolean '1'/'0'; set '0' to disable
-        the server and fall back to the embedded chat TUI.
-      default: '1'
-- image: ghcr.io/xorhub/waas-workspace-images/hermes-agent-dev:0.5.2
+- image: ghcr.io/xorhub/waas-workspace-images/hermes-agent-dev:0.5.3
   os: linux
   app: hermes-agent-dev
-  version: 0.5.2
+  version: 0.5.3
   icon: hermes
   displayName: Hermes-Agent (dev)
-  description: Hermes Agent (Nous Research) with its web dashboard in a Firefox kiosk (chat TUI embedded) — self-improving
-    AI agent; keys, sessions, memories and skills persist in ~/.hermes on the home volume, and mise installs extra toolchains
-    there too, so they survive pod restarts.
+  description: Hermes Agent (Nous Research) in its native desktop app — self-improving AI agent; keys, sessions, memories
+    and skills persist in ~/.hermes on the home volume, and mise installs extra toolchains there too, so they survive pod
+    restarts.
   architectures:
   - amd64
   - arm64
@@ -282,13 +242,13 @@ images:
       - vnc
       default: '1'
     - name: WAAS_HERMES_DASHBOARD
-      description: Serve the Hermes web dashboard in a Firefox kiosk (127.0.0.1:9119). Boolean '1'/'0'; set '0' to disable
-        the server and fall back to the embedded chat TUI.
-      default: '1'
-- image: ghcr.io/xorhub/waas-workspace-images/libreoffice:0.5.2
+      description: Boolean '1'/'0'. '1' serves the Hermes web dashboard (127.0.0.1:9119) and runs the session as a Firefox
+        kiosk on it instead of the native desktop app.
+      default: '0'
+- image: ghcr.io/xorhub/waas-workspace-images/libreoffice:0.5.3
   os: linux
   app: libreoffice
-  version: 0.5.2
+  version: 0.5.3
   icon: libreoffice
   displayName: LibreOffice
   description: LibreOffice (Ubuntu main packages, no third-party repo) in a single-app kiosk session — no desktop behind it.
@@ -319,10 +279,10 @@ images:
       protocols:
       - vnc
       default: '1'
-- image: ghcr.io/xorhub/waas-workspace-images/ubuntu-desktop-noble:0.5.2
+- image: ghcr.io/xorhub/waas-workspace-images/ubuntu-desktop-noble:0.5.3
   os: linux
   app: ubuntu-desktop-noble
-  version: 0.5.2
+  version: 0.5.3
   icon: ubuntu-linux
   displayName: Ubuntu Desktop Noble
   description: 'XFCE desktop over VNC on the apt core. Ships a usable baseline: Firefox, git, openssh-client, curl, vim, less,
