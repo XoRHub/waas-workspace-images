@@ -15,3 +15,8 @@ merged automatically, a schema change can be breaking).
 
 If `waas` ever publishes a `v2.schema.json`, vendor it alongside and
 branch `ci/validate_catalog.py` on `apiVersion`.
+
+`Entry.kasmvnc` (`version`/`defaults`, both strings) was hand-added
+ahead of waas publishing it, to unblock `ci/generate_kasm_catalog.py`'s
+extraction — the next `ci/sync_schema.sh` run, once waas' authoritative
+shape lands, supersedes this hand-added copy.

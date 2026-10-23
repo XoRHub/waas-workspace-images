@@ -82,6 +82,18 @@
         },
         "recommended": {
           "$ref": "#/$defs/Recommendation"
+        },
+        "kasmvnc": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "version": {
+              "type": "string"
+            },
+            "defaults": {
+              "type": "string"
+            }
+          }
         }
       },
       "additionalProperties": false,

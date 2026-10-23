@@ -100,6 +100,66 @@ class HubArchitectures(unittest.TestCase):
             self.assertIsNone(gkc.hub_architectures("terminal", "1.19.0"))
 
 
+def fake_run(stdout="", returncode=0):
+    return mock.Mock(stdout=stdout, stderr="", returncode=returncode)
+
+
+class ExtractKasmvnc(unittest.TestCase):
+    """extract_kasmvnc() with subprocess.run mocked — never a real
+    `docker run` here."""
+    VERSION_BANNER = (
+        "\nXvnc KasmVNC 1.5.1.582662953c819ade9ed4b620a5646546d8d7de7b - "
+        "built Jul 31 2026 09:56:50\n"
+        "Copyright (C) 1999-2026 KasmVNC Team and many others\n")
+    DEFAULTS = "---\ndesktop:\n  resolution:\n    width: 1024\n"
+
+    def _stdout(self, banner=VERSION_BANNER, defaults=DEFAULTS):
+        return f"{banner}{gkc.KASMVNC_MARKER}\n{defaults}"
+
+    def test_success_parses_version_and_defaults(self):
+        with mock.patch.object(gkc.subprocess, "run",
+                               return_value=fake_run(self._stdout())):
+            out = gkc.extract_kasmvnc("docker.io/kasmweb/terminal:1.19.0")
+        self.assertEqual(out, {"version": "1.5.1", "defaults": self.DEFAULTS})
+
+    def test_version_regex_ignores_trailing_git_sha(self):
+        # The exact banner line verified live on kasmweb/terminal:1.19.0:
+        # "1.5.1.582662953c8..." must parse as "1.5.1", not swallow the hash.
+        self.assertEqual(
+            gkc.KASMVNC_VERSION_RE.search(
+                "Xvnc KasmVNC 1.5.1.582662953c819ade9ed4b620a5646546d8d7de7b "
+                "- built Jul 31 2026 09:56:50").group(1),
+            "1.5.1")
+
+    def test_version_regex_no_match_on_unrelated_line(self):
+        self.assertIsNone(
+            gkc.KASMVNC_VERSION_RE.search("Copyright (C) 1999-2026 KasmVNC Team"))
+
+    def test_subprocess_exception_returns_none(self):
+        with mock.patch.object(gkc.subprocess, "run",
+                               side_effect=OSError("docker not found")):
+            self.assertIsNone(gkc.extract_kasmvnc("docker.io/kasmweb/terminal:1.19.0"))
+
+    def test_missing_marker_returns_none(self):
+        with mock.patch.object(gkc.subprocess, "run",
+                               return_value=fake_run("no cat, no Xvnc, nothing useful")):
+            self.assertIsNone(gkc.extract_kasmvnc("docker.io/kasmweb/terminal:1.19.0"))
+
+    def test_unparsable_version_returns_none(self):
+        with mock.patch.object(
+            gkc.subprocess, "run",
+            return_value=fake_run(self._stdout(banner="not a version banner\n")),
+        ):
+            self.assertIsNone(gkc.extract_kasmvnc("docker.io/kasmweb/terminal:1.19.0"))
+
+    def test_empty_defaults_returns_none(self):
+        with mock.patch.object(
+            gkc.subprocess, "run",
+            return_value=fake_run(self._stdout(defaults="")),
+        ):
+            self.assertIsNone(gkc.extract_kasmvnc("docker.io/kasmweb/terminal:1.19.0"))
+
+
 class Catalog(unittest.TestCase):
     def _catalog(self, mapping=MAPPING, **kwargs):
         with mock.patch.object(gkc, "latest_release_tag",
@@ -209,6 +269,65 @@ class Catalog(unittest.TestCase):
         out = self._catalog(probe=probe, previous=previous)
         probe.assert_called_once_with("docker.io/kasmweb/terminal:1.20.0")
         self.assertEqual(out["images"][0]["profile"], "normal")
+
+    def test_kasmvnc_present_when_extracted(self):
+        kasmvnc = {"version": "1.5.1", "defaults": "---\ndesktop:\n"}
+        out = self._catalog(probe=lambda ref: "normal",
+                             extract_kasmvnc=lambda ref: kasmvnc)
+        self.assertEqual(out["images"][0]["kasmvnc"], kasmvnc)
+
+    def test_kasmvnc_omitted_when_extraction_fails(self):
+        out = self._catalog(probe=lambda ref: "normal",
+                             extract_kasmvnc=lambda ref: None)
+        self.assertNotIn("kasmvnc", out["images"][0])
+
+    def test_kasmvnc_omitted_by_default(self):
+        # Default extractor (no --probe-hardening): never even called.
+        self.assertNotIn("kasmvnc", self._catalog()["images"][0])
+
+    def test_kasmvnc_carried_from_previous_when_unchanged(self):
+        kasmvnc = {"version": "1.5.1", "defaults": "---\ndesktop:\n"}
+        previous = {"terminal": {
+            "image": "docker.io/kasmweb/terminal:1.20.0",
+            "profile": "hardened",
+            "recommended": copy.deepcopy(gkc.RECOMMENDATION_HARDENED),
+            "kasmvnc": kasmvnc,
+        }}
+        extractor = mock.Mock(side_effect=AssertionError("must not be called"))
+        out = self._catalog(probe=lambda ref: "hardened",
+                             extract_kasmvnc=extractor, previous=previous)
+        extractor.assert_not_called()
+        self.assertEqual(out["images"][0]["kasmvnc"], kasmvnc)
+
+    def test_kasmvnc_reextracted_when_version_changes(self):
+        previous = {"terminal": {
+            "image": "docker.io/kasmweb/terminal:1.19.0",  # stale version
+            "profile": "hardened",
+            "recommended": gkc.RECOMMENDATION_HARDENED,
+            "kasmvnc": {"version": "1.4.0", "defaults": "stale"},
+        }}
+        new_kasmvnc = {"version": "1.5.1", "defaults": "fresh"}
+        out = self._catalog(probe=lambda ref: "hardened",
+                             extract_kasmvnc=lambda ref: new_kasmvnc,
+                             previous=previous)
+        self.assertEqual(out["images"][0]["kasmvnc"], new_kasmvnc)
+
+
+class DumpCatalog(unittest.TestCase):
+    def test_multiline_string_uses_block_literal_style(self):
+        data = {"apiVersion": gkc.API_VERSION, "images": [
+            {"image": "x", "kasmvnc": {"version": "1.5.1",
+                                        "defaults": "---\ndesktop:\n  a: 1\n"}},
+        ]}
+        text = gkc.dump_catalog(data)
+        self.assertIn("defaults: |\n", text)
+        self.assertEqual(yaml.safe_load(text), data)
+
+    def test_single_line_string_stays_plain(self):
+        data = {"apiVersion": gkc.API_VERSION, "images": [{"image": "x", "app": "y"}]}
+        text = gkc.dump_catalog(data)
+        self.assertIn("app: y\n", text)
+        self.assertNotIn("app: |\n", text)
 
 
 class LoadPrevious(unittest.TestCase):
