@@ -159,6 +159,16 @@ class ExtractKasmvnc(unittest.TestCase):
         ):
             self.assertIsNone(gkc.extract_kasmvnc("docker.io/kasmweb/terminal:1.19.0"))
 
+    def test_trailing_whitespace_stripped_per_line(self):
+        # PyYAML refuses block (`|`) style for a line with trailing
+        # spaces/tabs/CR and silently falls back to one long quoted line.
+        dirty = "---\ndesktop:  \n  resolution:\t\n    width: 1024\r\n"
+        with mock.patch.object(gkc.subprocess, "run",
+                               return_value=fake_run(self._stdout(defaults=dirty))):
+            out = gkc.extract_kasmvnc("docker.io/kasmweb/terminal:1.19.0")
+        self.assertEqual(out["defaults"],
+                         "---\ndesktop:\n  resolution:\n    width: 1024\n")
+
 
 class Catalog(unittest.TestCase):
     def _catalog(self, mapping=MAPPING, **kwargs):
@@ -247,10 +257,14 @@ class Catalog(unittest.TestCase):
         self.assertNotIn("volumes", entry["recommended"])
 
     def test_previous_same_version_skips_probe(self):
+        # Carry-forward requires BOTH profile and kasmvnc on the previous
+        # entry — see test_kasmvnc_reprobed_and_reextracted_when_previous_lacks_kasmvnc
+        # for the case where kasmvnc is missing.
         previous = {"terminal": {
             "image": "docker.io/kasmweb/terminal:1.20.0",
             "profile": "hardened",
             "recommended": copy.deepcopy(gkc.RECOMMENDATION_HARDENED),
+            "kasmvnc": {"version": "1.5.1", "defaults": "---\ndesktop:\n"},
         }}
         probe = mock.Mock(side_effect=AssertionError("must not be called"))
         out = self._catalog(probe=probe, previous=previous)
@@ -293,11 +307,31 @@ class Catalog(unittest.TestCase):
             "recommended": copy.deepcopy(gkc.RECOMMENDATION_HARDENED),
             "kasmvnc": kasmvnc,
         }}
+        probe = mock.Mock(side_effect=AssertionError("must not be called"))
         extractor = mock.Mock(side_effect=AssertionError("must not be called"))
-        out = self._catalog(probe=lambda ref: "hardened",
-                             extract_kasmvnc=extractor, previous=previous)
+        out = self._catalog(probe=probe, extract_kasmvnc=extractor, previous=previous)
+        probe.assert_not_called()
         extractor.assert_not_called()
         self.assertEqual(out["images"][0]["kasmvnc"], kasmvnc)
+
+    def test_kasmvnc_reprobed_and_reextracted_when_previous_lacks_kasmvnc(self):
+        # Every catalog committed before this field existed has a profile
+        # but no kasmvnc: carry-forward must not treat that as "nothing to
+        # extract" forever — it has to re-probe and re-extract instead.
+        previous = {"terminal": {
+            "image": "docker.io/kasmweb/terminal:1.20.0",
+            "profile": "hardened",
+            "recommended": copy.deepcopy(gkc.RECOMMENDATION_HARDENED),
+        }}
+        new_kasmvnc = {"version": "1.5.1", "defaults": "fresh"}
+        probe = mock.Mock(return_value="hardened")
+        extractor = mock.Mock(return_value=new_kasmvnc)
+        out = self._catalog(probe=probe, extract_kasmvnc=extractor, previous=previous)
+        probe.assert_called_once_with("docker.io/kasmweb/terminal:1.20.0")
+        extractor.assert_called_once_with("docker.io/kasmweb/terminal:1.20.0")
+        entry = out["images"][0]
+        self.assertEqual(entry["profile"], "hardened")
+        self.assertEqual(entry["kasmvnc"], new_kasmvnc)
 
     def test_kasmvnc_reextracted_when_version_changes(self):
         previous = {"terminal": {

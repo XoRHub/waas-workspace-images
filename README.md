@@ -112,8 +112,10 @@ hand-curated in `ci/kasm-catalog-mapping.yaml`. Everything is
 best-effort: an unreachable Hub falls back to the mapping's
 `knownVersion`, an inconclusive probe omits `profile`, a failed
 extraction omits `kasmvnc`. An unchanged image:version carries its
-previous `profile`/`recommended`/`kasmvnc` forward instead of being
-re-run.
+previous `profile`/`recommended`/`kasmvnc` forward only when the
+previous run has both; otherwise (a catalog with no `kasmvnc` yet, or a
+transient extraction failure) it is re-probed and re-extracted, same as
+an inconclusive probe being retried daily.
 
 ## Pipeline
 

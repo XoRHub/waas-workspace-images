@@ -32,7 +32,12 @@ reconcile). Best effort by design throughout: any Hub/Docker failure
 falls back to omitting the field (or, for version resolution, the
 mapping's knownVersion) rather than failing — this catalog must never
 block anything. An unchanged image:version carries its previous
-profile/recommended/kasmvnc forward instead of being re-run.
+profile/recommended/kasmvnc forward only when that previous run has
+BOTH a hardening verdict and a kasmvnc extraction; otherwise (as for
+every catalog committed before this field existed, or after a
+transient extraction failure) it is re-probed and re-extracted — the
+same cost an inconclusive probe already pays, retried daily until it
+resolves.
 
 Two CLI modes, both usable from CI or by hand:
 
@@ -164,19 +169,23 @@ def probe_hardening(ref: str) -> str | None:
 
 
 def extract_kasmvnc(ref: str) -> dict | None:
-    """Best-effort shell-out: one `docker run --rm --entrypoint sh <ref> -c`
-    gets both the `Xvnc -version` banner and the verbatim
-    kasmvnc_defaults.yaml — the image is already pulled by
-    probe_hardening() by the time this runs, so this never pulls again.
+    """Best-effort shell-out: one `docker run --rm --pull never --entrypoint
+    sh <ref> -c` gets both the `Xvnc -version` banner and the verbatim
+    kasmvnc_defaults.yaml — the image is already pulled by probe_hardening()
+    by the time this runs, so `--pull never` makes that assumption explicit:
+    fail fast rather than silently re-pulling if it ever turns out wrong.
     Returns {"version", "defaults"} for the waas admin UI's schema-driven
     KasmVNC form (display/prefill hint only, waas never reads it at
-    reconcile) or None on any failure (bad ref, missing binary/file,
-    timeout) — never raises."""
+    reconcile; `defaults` is whitespace-normalized per line, since PyYAML
+    refuses block (`|`) style for a line with trailing spaces/tabs/CR and
+    silently falls back to one long quoted line) or None on any failure
+    (bad ref, missing binary/file, timeout) — never raises."""
     cmd = (f"Xvnc -version 2>&1; echo '{KASMVNC_MARKER}'; "
            f"cat {KASMVNC_DEFAULTS_PATH}")
     try:
         result = subprocess.run(
-            ["docker", "run", "--rm", "--entrypoint", "sh", ref, "-c", cmd],
+            ["docker", "run", "--rm", "--pull", "never", "--entrypoint", "sh",
+             ref, "-c", cmd],
             capture_output=True, text=True, timeout=KASMVNC_TIMEOUT)
     except Exception as exc:  # noqa: BLE001 — best effort, never fatal
         print(f"{ref}: kasmvnc defaults extraction failed: {exc}", file=sys.stderr)
@@ -192,6 +201,7 @@ def extract_kasmvnc(ref: str) -> dict | None:
         print(f"{ref}: kasmvnc defaults extraction failed: "
               f"unparsable version or empty defaults file", file=sys.stderr)
         return None
+    defaults = "\n".join(line.rstrip() for line in defaults.split("\n"))
     return {"version": match.group(1), "defaults": defaults}
 
 
@@ -266,14 +276,17 @@ def catalog(
         if archs:
             entry["architectures"] = archs
         # The probe pulls+runs a full desktop image: an unchanged
-        # image:version keeps its published verdict (and kasmvnc
-        # extraction) instead of being re-run every time.
-        if fallback and fallback.get("image") == ref and fallback.get("profile"):
+        # image:version keeps its published verdict and kasmvnc
+        # extraction instead of being re-run every time — but only once
+        # both exist; a catalog with no kasmvnc yet (or a transient
+        # extraction failure) falls to the else branch below and
+        # re-probes/re-extracts, same as an inconclusive probe today.
+        if (fallback and fallback.get("image") == ref
+                and fallback.get("profile") and fallback.get("kasmvnc")):
             entry["profile"] = fallback["profile"]
             if fallback.get("recommended"):
                 entry["recommended"] = copy.deepcopy(fallback["recommended"])
-            if fallback.get("kasmvnc"):
-                entry["kasmvnc"] = copy.deepcopy(fallback["kasmvnc"])
+            entry["kasmvnc"] = copy.deepcopy(fallback["kasmvnc"])
         else:
             outcome = probe(ref)
             if outcome:
@@ -375,8 +388,10 @@ def main() -> None:
     parser.add_argument(
         "--probe-hardening", action="store_true",
         help="pull+run each resolved image via probe_kasm_hardening.sh to "
-             "derive profile/recommended — slow, needs Docker; off by "
-             "default so the local loop stays fast and offline-friendly")
+             "derive profile/recommended, and extract its KasmVNC version "
+             "and kasmvnc_defaults.yaml (kasmvnc) from the same pulled "
+             "image — slow, needs Docker; off by default so the local "
+             "loop stays fast and offline-friendly")
     args = parser.parse_args()
 
     mapping_path = Path(args.mapping)
