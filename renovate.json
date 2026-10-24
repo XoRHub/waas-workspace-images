@@ -29,16 +29,13 @@
       "automerge": false
     },
     {
-      "description": "The CI toolkit consumed at actions/vN: a new N is a breaking toolkit change, reviewed by hand.",
+      "description": "The CI toolkit is consumed at @main on purpose, unpinned: no Renovate PR, it moves with main.",
       "matchPackageNames": ["XoRHub/waas-core-images"],
-      "versioning": "regex:^actions/v(?<major>\\d+)$",
-      "groupName": "waas-core-images toolkit",
-      "automerge": false
+      "enabled": false
     },
     {
       "description": "One PR for every actions/* bump, so one CI run instead of one per dependency.",
       "matchManagers": ["github-actions"],
-      "matchPackageNames": ["!XoRHub/waas-core-images"],
       "groupName": "github-actions"
     },
     {
@@ -56,16 +53,6 @@
         "\\n\\s+core-[a-z0-9-]+: (?<depName>ghcr\\.io/xorhub/waas-core-images/[a-z0-9-]+):(?<currentValue>[0-9.]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
       ],
       "datasourceTemplate": "docker"
-    },
-    {
-      "customType": "regex",
-      "description": "The toolkit checkout (actions/checkout ref:) next to the uses: refs the github-actions manager tracks.",
-      "managerFilePatterns": ["/^\\.github/workflows/.+\\.yml$/"],
-      "matchStrings": [
-        "repository: (?<depName>XoRHub/waas-core-images)\\n\\s+ref: (?<currentValue>actions/v\\d+)"
-      ],
-      "datasourceTemplate": "github-tags",
-      "versioningTemplate": "regex:^actions/v(?<major>\\d+)$"
     },
     {
       "customType": "regex",

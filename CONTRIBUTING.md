@@ -71,14 +71,13 @@ is a PR bumping `release:`.
 ## Dependency updates
 
 Renovate (`renovate.json`): the pinned cores (`cores:`, group
-`cores`), the toolkit ref (`actions/vN`), GitHub Actions, the tool
-images in the workflows/Makefile (by tag), and the annotated pins
-in the Dockerfiles and `shared/` scripts (node, npm, hermes-agent,
-mise).
-Patch and digest updates automerge once the required checks pass;
-those touching `images.yaml`, `apps/`, `desktop/` or `shared/` also
-trigger a patch release. Minor/major core bumps and toolkit majors
-are reviewed by hand.
+`cores`), GitHub Actions (not the toolkit, which is consumed at
+`@main`), the tool images in the workflows/Makefile (by tag), and the
+annotated pins in the Dockerfiles and `shared/` scripts (node, npm,
+hermes-agent, mise). Patch and digest updates automerge once the
+required checks pass; those touching `images.yaml`, `apps/`, `desktop/`
+or `shared/` also trigger a patch release. Minor/major core bumps are
+reviewed by hand.
 
 ## Commit messages
 

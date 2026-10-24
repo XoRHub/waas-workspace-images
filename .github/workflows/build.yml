@@ -4,7 +4,7 @@
 # Promotion to a release is release.yml.
 #
 # Static skeleton, dynamic matrices: the toolkit's pipeline action
-# (XoRHub/waas-core-images, pinned at actions/v1) decides what to build.
+# (XoRHub/waas-core-images at main, unpinned) decides what to build.
 # Two dependency depths: desktops and kiosk apps on a core (layer-0),
 # devtools on ubuntu-desktop-noble (layer-1). A deeper tree adds a
 # layer-N/scan-N/merge-N set (layer-N needs carry + merge-N-1) and
@@ -50,7 +50,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: XoRHub/waas-core-images
-          ref: actions/v1
+          ref: main
           path: .waas-core-images
       - uses: astral-sh/setup-uv@v9.0.0
       - name: Materialise recipe Dockerfiles
@@ -100,7 +100,7 @@ jobs:
           esac
           echo "since=${since}" >> "$GITHUB_OUTPUT"
       - id: pipeline
-        uses: XoRHub/waas-core-images/.github/actions/pipeline@actions/v1
+        uses: XoRHub/waas-core-images/.github/actions/pipeline@main
         with:
           since: ${{ steps.since.outputs.since }}
           all: ${{ github.event_name != 'push' && github.event_name != 'pull_request' }}
@@ -116,7 +116,7 @@ jobs:
         include: ${{ fromJSON(needs.setup.outputs.carry) }}
     steps:
       - uses: actions/checkout@v7
-      - uses: XoRHub/waas-core-images/.github/actions/merge@actions/v1
+      - uses: XoRHub/waas-core-images/.github/actions/merge@main
         with:
           image: ${{ toJSON(matrix) }}
           carry: "true"
@@ -132,7 +132,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
-      - uses: XoRHub/waas-core-images/.github/actions/build@actions/v1
+      - uses: XoRHub/waas-core-images/.github/actions/build@main
         with:
           image: ${{ toJSON(matrix) }}
           no-cache: ${{ inputs.no_cache || false }}
@@ -148,7 +148,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: XoRHub/waas-core-images/.github/actions/scan@actions/v1
+      - uses: XoRHub/waas-core-images/.github/actions/scan@main
         with:
           image: ${{ toJSON(matrix) }}
           severity: ${{ needs.setup.outputs.scan_severity }}
@@ -164,7 +164,7 @@ jobs:
         include: ${{ fromJSON(needs.setup.outputs.merge0) }}
     steps:
       - uses: actions/checkout@v7
-      - uses: XoRHub/waas-core-images/.github/actions/merge@actions/v1
+      - uses: XoRHub/waas-core-images/.github/actions/merge@main
         with:
           image: ${{ toJSON(matrix) }}
           publish: ${{ needs.setup.outputs.publish }}
@@ -187,7 +187,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v7
-      - uses: XoRHub/waas-core-images/.github/actions/build@actions/v1
+      - uses: XoRHub/waas-core-images/.github/actions/build@main
         with:
           image: ${{ toJSON(matrix) }}
           no-cache: ${{ inputs.no_cache || false }}
@@ -210,7 +210,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: XoRHub/waas-core-images/.github/actions/scan@actions/v1
+      - uses: XoRHub/waas-core-images/.github/actions/scan@main
         with:
           image: ${{ toJSON(matrix) }}
           severity: ${{ needs.setup.outputs.scan_severity }}
@@ -229,7 +229,7 @@ jobs:
         include: ${{ fromJSON(needs.setup.outputs.merge1) }}
     steps:
       - uses: actions/checkout@v7
-      - uses: XoRHub/waas-core-images/.github/actions/merge@actions/v1
+      - uses: XoRHub/waas-core-images/.github/actions/merge@main
         with:
           image: ${{ toJSON(matrix) }}
           publish: ${{ needs.setup.outputs.publish }}

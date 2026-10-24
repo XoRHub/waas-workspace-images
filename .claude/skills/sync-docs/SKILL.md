@@ -40,7 +40,7 @@ drift easily — this skill is the review pass that catches it.
    targets, env vars, tags, paths) and check those sections the same
    way. A change to a `-dev` variant, a browser flag or a
    `.trivyignore` almost always touches HARDENING.md; a change to the
-   toolkit consumption (`actions/v1`, `WAAS_CORE_IMAGES_DIR`) touches
+   toolkit consumption (`@main`, `WAAS_CORE_IMAGES_DIR`) touches
    README, AGENTS and CONTRIBUTING.
 
 4. **Fix only the drift you found.** Terse comments that explain the

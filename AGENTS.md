@@ -9,7 +9,7 @@ and `HARDENING.md` (`../waas-core-images`, or on GitHub).
 The desktops and apps of WaaS Linux workspaces — every image the WaaS
 catalog offers — built `FROM` the `core-*` images of
 `XoRHub/waas-core-images` (pinned `tag@digest` in `images.yaml`
-`cores:`) with that repo's CI toolkit (`.github/actions/*@actions/v1`).
+`cores:`) with that repo's CI toolkit (`.github/actions/*@main`, unpinned).
 Every image boots the core's Xvnc as its only remote-access listener,
 runs unprivileged under `tini + supervisord`, and passes the core's
 smoke test under `--read-only --cap-drop ALL --security-opt
@@ -58,10 +58,11 @@ explicitly, and flag it if a change would:
 - The toolkit (build/merge/promote/scan/pipeline actions,
   `generate_pipeline.py`, `recipe_compiler.py`, the smoke test) lives
   only in `waas-core-images`. Never copy a script from it here; consume
-  it as `XoRHub/waas-core-images/.github/actions/<name>@actions/v1`, or
+  it as `XoRHub/waas-core-images/.github/actions/<name>@main`, or
   through `WAAS_CORE_IMAGES_DIR` locally (`Makefile`,
   `ci/generate_catalog.py`). If it lacks something this repo needs,
-  change it there (a compatible change moves `actions/v1`).
+  change it there; the change applies here on the next run, so a
+  breaking one must land together with a matching change here.
 - Catalog tooling (`ci/generate_catalog.py`,
   `ci/generate_kasm_catalog.py`, `ci/probe_kasm_hardening.sh`,
   `ci/validate_catalog.py`, `ci/schema/`, `ci/sync_schema.sh`,

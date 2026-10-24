@@ -105,7 +105,7 @@ jobs:
         with:
           ref: ${{ needs.version.outputs.sha }}
       - id: pipeline
-        uses: XoRHub/waas-core-images/.github/actions/pipeline@actions/v1
+        uses: XoRHub/waas-core-images/.github/actions/pipeline@main
         with:
           all: "true"
           max-depth: 1
@@ -121,7 +121,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ needs.version.outputs.sha }}
-      - uses: XoRHub/waas-core-images/.github/actions/promote@actions/v1
+      - uses: XoRHub/waas-core-images/.github/actions/promote@main
         with:
           image: ${{ toJSON(matrix) }}
           version: ${{ needs.version.outputs.version }}
@@ -144,7 +144,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           repository: XoRHub/waas-core-images
-          ref: actions/v1
+          ref: main
           path: .waas-core-images
       - uses: astral-sh/setup-uv@v9.0.0
       - run: |

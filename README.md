@@ -109,11 +109,13 @@ best-effort: an unreachable Hub falls back to the mapping's
 ## Pipeline
 
 `build.yml` runs on every PR and `main` push, on the core toolkit's
-composite actions (`XoRHub/waas-core-images/.github/actions/<name>@actions/v1`,
-bumped by Renovate). The mechanics — selective builds against the last
-green `main` build, carry-forward of untouched variants, native
-per-arch build → smoke → push, trivy scan, manifest list + sign +
-attest — are the core README's § Pipeline. Specific to this repo:
+composite actions
+(`XoRHub/waas-core-images/.github/actions/<name>@main`, unpinned: they
+move with `waas-core-images` main). The mechanics — selective builds
+against the last green `main` build, carry-forward of untouched
+variants, native per-arch build → smoke → push, trivy scan, manifest
+list + sign + attest — are the core README's § Pipeline. Specific to
+this repo:
 
 - **Depths**: `layer-0` builds every variant whose parent is a core,
   `layer-1` builds `devtools` `FROM` this commit's `ubuntu-desktop-noble`
@@ -129,8 +131,9 @@ attest — are the core README's § Pipeline. Specific to this repo:
   those touching image content (`images.yaml`, `apps/`, `desktop/`,
   `shared/`) carry the `auto-release` label, so the merge triggers a
   patch release (CI-tooling bumps don't). Minor/major core bumps (a
-  runtime-contract change) and toolkit majors (`actions/v2`) are
-  reviewed by hand.
+  runtime-contract change) are reviewed by hand. The toolkit is not a
+  Renovate target: a breaking toolkit change lands together with a
+  matching change here.
 
 `release.yml` promotes (never rebuilds): computes `X.Y.<n+1>`, retags
 the `g<sha>` images of the target `main` commit to `X.Y.n` + `X.Y` (+
