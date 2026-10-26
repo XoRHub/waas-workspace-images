@@ -13,9 +13,9 @@ release: "0.6"
 # External parents, referenced by manifests' `from:`. Pinned tag@digest,
 # bumped by Renovate (group "cores").
 cores:
-  core-ubuntu-noble: ghcr.io/xorhub/waas-core-images/core-ubuntu-noble:1.0.4@sha256:0809a0e438b74b010a9271c36e45ad2374694088391149eb884bc8ec9735a8b1
-  core-debian-13: ghcr.io/xorhub/waas-core-images/core-debian-13:1.0.4@sha256:88d80d481f5960b7854e5a6eeb63936d0e771583e8e42921698edac5566f007f
-  core-fedora-43: ghcr.io/xorhub/waas-core-images/core-fedora-43:1.0.4@sha256:3ba06eba5dd169eae524038c4ce66756874c67654994d869715f6dbedafa5fd7
+  core-ubuntu-noble: ghcr.io/xorhub/waas-core-images/core-ubuntu-noble:1.0.5@sha256:d072e693f8ba3765ba67de403c06aecc341380a97f7b2735334327a5d3c6ca54
+  core-debian-13: ghcr.io/xorhub/waas-core-images/core-debian-13:1.0.5@sha256:4c2a58518f938ff32f1f3ad7ae6fd651d1951fb0431c720dcc2355e16eb34c7f
+  core-fedora-43: ghcr.io/xorhub/waas-core-images/core-fedora-43:1.0.5@sha256:340b4d83b186143743207b4da0528fccfc92464408b179035d666756c3ca03c0
 
 # OS keys a manifest may name (`os:`); the OS itself comes from the core.
 os:
