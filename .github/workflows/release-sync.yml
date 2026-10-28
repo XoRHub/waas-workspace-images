@@ -38,7 +38,7 @@ jobs:
   sync-release:
     # A release/X.Y branch is pinned to its minor by definition.
     if: github.ref_name == github.event.repository.default_branch
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
