@@ -13,9 +13,11 @@
 # Daily 06:00 UTC: Kasm cuts releases every few months, so daily is
 # generous while staying far from Docker Hub's anonymous rate limits.
 # --probe-hardening pulls+runs each resolved image
-# (ci/probe_kasm_hardening.sh) — only here, never in the local loop. The
-# result is committed via the Contents API (ci/commit_catalog.sh): main
-# requires verified signatures and a bot's plain push is never Verified.
+# (ci/probe_kasm_hardening.sh) and, from that same pulled image, extracts
+# its KasmVNC version and kasmvnc_defaults.yaml (ci/generate_kasm_catalog.py
+# extract_kasmvnc()) — only here, never in the local loop. The result is
+# committed via the Contents API (ci/commit_catalog.sh): main requires
+# verified signatures and a bot's plain push is never Verified.
 #
 # Caveat: GitHub disables cron-triggered workflows after 60 days without
 # repo activity — re-enable from the Actions tab, or use the

@@ -66,6 +66,19 @@ class ValidateCatalog(unittest.TestCase):
         )
         self.assertEqual(vc.validate(data, SCHEMA), [])
 
+    def test_kasmvnc_entry_valid(self):
+        data = minimal()
+        data["images"][0]["kasmvnc"] = {
+            "version": "1.5.1",
+            "defaults": "---\ndesktop:\n  resolution:\n    width: 1024\n",
+        }
+        self.assertEqual(vc.validate(data, SCHEMA), [])
+
+    def test_kasmvnc_unknown_key(self):
+        data = minimal()
+        data["images"][0]["kasmvnc"] = {"version": "1.5.1", "bogus": True}
+        self.assertTrue(vc.validate(data, SCHEMA))
+
     def test_profile_out_of_enum(self):
         data = minimal()
         data["images"][0]["profile"] = "bogus"

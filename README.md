@@ -101,10 +101,21 @@ chart asks for it). `ci/generate_kasm_catalog.py` resolves each image's
 newest `X.Y.Z` tag and its architectures from Docker Hub and derives
 `profile`/`recommended` by actually running the image under the core's
 hardened flags (`ci/probe_kasm_hardening.sh`, CI only — kasmweb images
-carry no HARDENING.md to read a profile off). Which images to publish is
+carry no HARDENING.md to read a profile off). The same CI-only run also
+extracts `kasmvnc` (KasmVNC's own version plus the verbatim
+`/usr/share/kasmvnc/kasmvnc_defaults.yaml`, reusing the image already
+pulled for the hardening probe, never a second pull): a display/prefill
+hint for waas' schema-driven KasmVNC admin form, generated from every
+option the image's own KasmVNC ships rather than hand-tracked here —
+waas never reads it at reconcile. Which images to publish is
 hand-curated in `ci/kasm-catalog-mapping.yaml`. Everything is
 best-effort: an unreachable Hub falls back to the mapping's
-`knownVersion`, an inconclusive probe omits `profile`.
+`knownVersion`, an inconclusive probe omits `profile`, a failed
+extraction omits `kasmvnc`. An unchanged image:version carries its
+previous `profile`/`recommended`/`kasmvnc` forward only when the
+previous run has both; otherwise (a catalog with no `kasmvnc` yet, or a
+transient extraction failure) it is re-probed and re-extracted, same as
+an inconclusive probe being retried daily.
 
 ## Pipeline
 
