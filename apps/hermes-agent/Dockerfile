@@ -22,7 +22,7 @@ USER 0
 
 ARG TARGETARCH
 # renovate: datasource=node-version depName=node
-ARG NODE_VERSION=24.22.0
+ARG NODE_VERSION=24.22.2
 # Build-time only: npm drives the two workspace builds below and is then
 # deleted along with node_modules. Its own vendored tree is where the
 # node CVEs live (picomatch/sigstore, then brace-expansion/undici/tar),
