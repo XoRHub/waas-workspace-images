@@ -28,7 +28,7 @@ ARG NODE_VERSION=24.22.2
 # node CVEs live (picomatch/sigstore, then brace-expansion/undici/tar),
 # so the image ships node without it rather than chasing npm releases.
 # renovate: datasource=npm depName=npm
-ARG NPM_VERSION=12.2.1
+ARG NPM_VERSION=12.2.2
 # renovate: datasource=github-tags depName=NousResearch/hermes-agent
 ARG HERMES_VERSION=v2026.9.24
 
