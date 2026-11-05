@@ -39,11 +39,11 @@ permissions:
 
 jobs:
   publish-catalog-kasmweb:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: astral-sh/setup-uv@v10.3.3
       - name: Regenerate, validate and commit the kasm catalog
         run: make kasm-catalog-publish KASM_PROBE=1
