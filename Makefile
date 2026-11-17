@@ -88,7 +88,8 @@ catalog:
 # a waas chart derives both URLs from its own appVersion minor. Decoupled
 # from an image release: regenerated on a schedule, not by release.yml
 # (.github/workflows/catalog-kasmweb.yml). KASM_PROBE=1 adds the Docker
-# hardening probe (slow, needs Docker — CI only).
+# hardening probe and the KasmVNC defaults extraction, both from the same
+# pulled image (slow, needs Docker — CI only).
 RELEASE_MINOR := $(shell sed -nE 's/^release: *"?([0-9]+\.[0-9]+)"?.*$$/\1/p' images.yaml)
 KASM_CATALOG  := catalogs/$(RELEASE_MINOR)/catalog-kasmweb.yaml
 KASM_PROBE    ?=

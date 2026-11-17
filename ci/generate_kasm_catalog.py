@@ -18,16 +18,26 @@ ci/kasm-catalog-mapping.yaml stays hand-curated for which image/app
 name/icon/displayName/description to publish (description optional and
 never regenerated away — see catalog()); this script resolves the
 newest published X.Y.Z release tag per image from the public Docker
-Hub API (no auth needed) and derives BOTH `architectures` (Hub's
-per-tag manifest-list data — hand-curating it drifted stale, see
-hub_architectures()) and `profile`/`recommended` (probe_hardening(),
-only with --probe-hardening: it actually pulls+runs the resolved image
-under the hardened Docker flags of waas-core-images' smoke test, since
+Hub API (no auth needed) and derives `architectures` (Hub's per-tag
+manifest-list data — hand-curating it drifted stale, see
+hub_architectures()), `profile`/`recommended` (probe_hardening(), only
+with --probe-hardening: it actually pulls+runs the resolved image under
+the hardened Docker flags of waas-core-images' smoke test, since
 kasmweb images carry no HARDENING.md doctrine to derive a profile from
-statically). Best effort by design throughout: any Hub/Docker failure
+statically) and `kasmvnc` (extract_kasmvnc(), same --probe-hardening
+opt-in, reusing that pull: the KasmVNC version and the verbatim
+/usr/share/kasmvnc/kasmvnc_defaults.yaml, a display/prefill hint for
+waas' schema-driven KasmVNC admin form — waas never reads it at
+reconcile). Best effort by design throughout: any Hub/Docker failure
 falls back to omitting the field (or, for version resolution, the
 mapping's knownVersion) rather than failing — this catalog must never
-block anything.
+block anything. An unchanged image:version carries its previous
+profile/recommended/kasmvnc forward only when that previous run has
+BOTH a hardening verdict and a kasmvnc extraction; otherwise (as for
+every catalog committed before this field existed, or after a
+transient extraction failure) it is re-probed and re-extracted — the
+same cost an inconclusive probe already pays, retried daily until it
+resolves.
 
 Two CLI modes, both usable from CI or by hand:
 
@@ -71,6 +81,10 @@ MAX_PAGES = 5  # ~500 tags, comfortable headroom over kasm's tag volume
 TIMEOUT = 15
 PROBE_TIMEOUT = 180  # probe_kasm_hardening.sh pulls full desktop images
 ARCH_ENUM = ("amd64", "arm64")  # shared/catalog/schema/v1.schema.json Entry.architectures
+KASMVNC_DEFAULTS_PATH = "/usr/share/kasmvnc/kasmvnc_defaults.yaml"
+KASMVNC_MARKER = "---KASMVNC-DEFAULTS---"  # splits the version banner from the file in one docker run's stdout
+KASMVNC_VERSION_RE = re.compile(r"KasmVNC (\d+\.\d+\.\d+)")  # "1.5.1" out of "1.5.1.<git-sha> - built ..."
+KASMVNC_TIMEOUT = 30  # the image is already pulled by probe_hardening(); just a quick `docker run`
 
 # Mirrors waas-core-images HARDENING.md § "To apply on the platform
 # side" — the pod securityContext a probe-confirmed hardened image
@@ -154,6 +168,43 @@ def probe_hardening(ref: str) -> str | None:
     return outcome if outcome in ("hardened", "normal") else None
 
 
+def extract_kasmvnc(ref: str) -> dict | None:
+    """Best-effort shell-out: one `docker run --rm --pull never --entrypoint
+    sh <ref> -c` gets both the `Xvnc -version` banner and the verbatim
+    kasmvnc_defaults.yaml — the image is already pulled by probe_hardening()
+    by the time this runs, so `--pull never` makes that assumption explicit:
+    fail fast rather than silently re-pulling if it ever turns out wrong.
+    Returns {"version", "defaults"} for the waas admin UI's schema-driven
+    KasmVNC form (display/prefill hint only, waas never reads it at
+    reconcile; `defaults` is whitespace-normalized per line, since PyYAML
+    refuses block (`|`) style for a line with trailing spaces/tabs/CR and
+    silently falls back to one long quoted line) or None on any failure
+    (bad ref, missing binary/file, timeout) — never raises."""
+    cmd = (f"Xvnc -version 2>&1; echo '{KASMVNC_MARKER}'; "
+           f"cat {KASMVNC_DEFAULTS_PATH}")
+    try:
+        result = subprocess.run(
+            ["docker", "run", "--rm", "--pull", "never", "--entrypoint", "sh",
+             ref, "-c", cmd],
+            capture_output=True, text=True, timeout=KASMVNC_TIMEOUT)
+    except Exception as exc:  # noqa: BLE001 — best effort, never fatal
+        print(f"{ref}: kasmvnc defaults extraction failed: {exc}", file=sys.stderr)
+        return None
+    if KASMVNC_MARKER not in result.stdout:
+        print(f"{ref}: kasmvnc defaults extraction failed: "
+              f"docker run produced no usable output", file=sys.stderr)
+        return None
+    banner, _, defaults = result.stdout.partition(KASMVNC_MARKER)
+    defaults = defaults.lstrip("\n")
+    match = KASMVNC_VERSION_RE.search(banner)
+    if not match or not defaults.strip():
+        print(f"{ref}: kasmvnc defaults extraction failed: "
+              f"unparsable version or empty defaults file", file=sys.stderr)
+        return None
+    defaults = "\n".join(line.rstrip() for line in defaults.split("\n"))
+    return {"version": match.group(1), "defaults": defaults}
+
+
 def recommended_for(profile: str) -> dict:
     if profile == "hardened":
         return copy.deepcopy(RECOMMENDATION_HARDENED)
@@ -178,6 +229,7 @@ def catalog(
     mapping: dict,
     *,
     probe: Callable[[str], str | None] = lambda ref: None,
+    extract_kasmvnc: Callable[[str], dict | None] = lambda ref: None,
     previous: dict[str, dict] | None = None,
 ) -> dict:
     previous = previous or {}
@@ -224,19 +276,46 @@ def catalog(
         if archs:
             entry["architectures"] = archs
         # The probe pulls+runs a full desktop image: an unchanged
-        # image:version keeps its published verdict instead of being
-        # re-probed every run.
-        if fallback and fallback.get("image") == ref and fallback.get("profile"):
+        # image:version keeps its published verdict and kasmvnc
+        # extraction instead of being re-run every time — but only once
+        # both exist; a catalog with no kasmvnc yet (or a transient
+        # extraction failure) falls to the else branch below and
+        # re-probes/re-extracts, same as an inconclusive probe today.
+        if (fallback and fallback.get("image") == ref
+                and fallback.get("profile") and fallback.get("kasmvnc")):
             entry["profile"] = fallback["profile"]
             if fallback.get("recommended"):
                 entry["recommended"] = copy.deepcopy(fallback["recommended"])
+            entry["kasmvnc"] = copy.deepcopy(fallback["kasmvnc"])
         else:
             outcome = probe(ref)
             if outcome:
                 entry["profile"] = outcome
                 entry["recommended"] = recommended_for(outcome)
+            kasmvnc = extract_kasmvnc(ref)
+            if kasmvnc:
+                entry["kasmvnc"] = kasmvnc
         images.append(entry)
     return {"apiVersion": API_VERSION, "images": images}
+
+
+class _KasmCatalogDumper(yaml.SafeDumper):
+    """safe_dump, plus block-literal (`|`) style for any multiline string
+    (currently just kasmvnc.defaults) so the committed catalog keeps it
+    human-readable instead of one giant quoted/escaped line."""
+
+
+def _represent_str(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+    style = "|" if "\n" in data else None
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style=style)
+
+
+_KasmCatalogDumper.add_representer(str, _represent_str)
+
+
+def dump_catalog(data: dict) -> str:
+    return yaml.dump(data, Dumper=_KasmCatalogDumper, sort_keys=False, width=120,
+                      allow_unicode=True)
 
 
 def append_mapping_entry(mapping_path: Path, name: str, version: str) -> None:
@@ -309,8 +388,10 @@ def main() -> None:
     parser.add_argument(
         "--probe-hardening", action="store_true",
         help="pull+run each resolved image via probe_kasm_hardening.sh to "
-             "derive profile/recommended — slow, needs Docker; off by "
-             "default so the local loop stays fast and offline-friendly")
+             "derive profile/recommended, and extract its KasmVNC version "
+             "and kasmvnc_defaults.yaml (kasmvnc) from the same pulled "
+             "image — slow, needs Docker; off by default so the local "
+             "loop stays fast and offline-friendly")
     args = parser.parse_args()
 
     mapping_path = Path(args.mapping)
@@ -318,21 +399,23 @@ def main() -> None:
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     probe = probe_hardening if args.probe_hardening else (lambda ref: None)
+    # Same opt-in as the hardening probe: by the time this runs the
+    # image is already pulled (probe() above), so it's free to also run.
+    kasmvnc_extractor = extract_kasmvnc if args.probe_hardening else (lambda ref: None)
     previous = load_previous(out_path)
 
     if args.image:
         img = resolve_mapping_entry(mapping, mapping_path, args.image)
-        entry = catalog({"images": [img]}, probe=probe, previous=previous)["images"][0]
+        entry = catalog({"images": [img]}, probe=probe, extract_kasmvnc=kasmvnc_extractor,
+                         previous=previous)["images"][0]
         out_data = upsert_entry(out_path, entry)
-        out_path.write_text(
-            yaml.safe_dump(out_data, sort_keys=False, width=120, allow_unicode=True))
+        out_path.write_text(dump_catalog(out_data))
         profile_note = f" (profile: {entry['profile']})" if entry.get("profile") else ""
         print(f"updated {out_path}: {entry['app']} -> {entry['image']}{profile_note}")
         return
 
-    out = catalog(mapping, probe=probe, previous=previous)
-    out_path.write_text(
-        yaml.safe_dump(out, sort_keys=False, width=120, allow_unicode=True))
+    out = catalog(mapping, probe=probe, extract_kasmvnc=kasmvnc_extractor, previous=previous)
+    out_path.write_text(dump_catalog(out))
     print(f"generated {out_path} with {len(out['images'])} image(s)")
 
 
